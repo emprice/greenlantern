@@ -1,4 +1,4 @@
-# Green Lantern: Green's theorem Limb-darkened platform-Agnostic Numerical Transiting Ellipsoid Rapid Numerical code
+# Green Lantern: Green's theorem Limb-darkened platform-AgNostic Transiting Ellipsoid Rapid Numerical code
 
 ![Project logo](/assets/logo.png)
 
