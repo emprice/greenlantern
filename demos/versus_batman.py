@@ -7,17 +7,14 @@ import scipy.optimize as opt
 import matplotlib.pyplot as plt
 from nordplotlib.png import install; install()
 
-a, b, c, zs, alpha0, beta, gamma, u1, u2 = \
-    0.1, 0.1, 0.1, 5., 0.01, -0.02, 0., 0.1, -0.02
-
-Porb = 2 * np.pi
-Omega = 2 * np.pi / Porb
+a, b, c, zs, t0, beta, gamma, u1, u2, Porb = \
+    0.1, 0.1, 0.1, 5., 0.01, -0.02, 0., 0.1, -0.02, 2 * np.pi
 
 q1 = (u1 + u2)**2
 q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
 
 batp = batman.TransitParams()
-batp.t0 = alpha0
+batp.t0 = t0
 batp.per = Porb
 batp.rp = a
 batp.a = zs
@@ -33,11 +30,11 @@ ctx1 = greenlantern.Context(ctx)
 ntries = 10
 
 def generate_timings():
-    for log2_nalpha in np.linspace(10, 18, 50):
-        nalpha = (2.**log2_nalpha).astype(int)
-        alpha = np.linspace(-0.3, 0.3, nalpha)
+    for log2_nt in np.linspace(10, 18, 50):
+        nt = (2.**log2_nt).astype(int)
+        time_host = np.linspace(-0.3, 0.3, nt)
 
-        model = batman.TransitModel(batp, alpha)
+        model = batman.TransitModel(batp, time_host)
 
         dt_batman = 0
         for _ in range(ntries):
@@ -47,37 +44,41 @@ def generate_timings():
             dt_batman += (t1 - t0) / model_flux.size
         dt_batman /= ntries
 
-        alpha = pocky.BufferPair(ctx, alpha.astype(np.float32))
-        alpha.copy_to_device()
-        alpha.dirty = False
+        time_dev = pocky.BufferPair(ctx, time_host.astype(np.float32))
+        time_dev.copy_to_device()
+        time_dev.dirty = False
 
-        params = np.array([[a, a, a, zs, alpha0, beta, gamma, q1, q2]], dtype=np.float32)
+        params = np.array([[a, a, a, zs, t0, beta, gamma, q1, q2, Porb]], dtype=np.float32)
         params = pocky.BufferPair(ctx, params)
 
-        flux = np.empty((params.host.shape[0], nalpha), dtype=np.float32)
+        flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
         flux = pocky.BufferPair(ctx, flux)
 
         dt_greenlantern = 0
         for _ in range(ntries):
             t0 = time.time()
-            ctx1.ellipsoid_transit_flux(alpha, params, output=flux)
+            ctx1.ellipsoid_transit_flux(time_dev, params, output=flux)
             t1 = time.time()
             dt_greenlantern += (t1 - t0) / flux.host.size
         dt_greenlantern /= ntries
 
         abserr = np.absolute(np.amax(flux.host[0] - model_flux))
 
-        yield nalpha, dt_batman, dt_greenlantern, abserr
+        yield nt, dt_batman, dt_greenlantern, abserr
 
 timings = np.array(list(generate_timings()))
 
 fig, ax = plt.subplots(figsize=(8, 4), layout='constrained')
+
 ax.scatter(timings[:,0], timings[:,1] * 1e6, label=r'\texttt{batman}', color='C2')
 ax.scatter(timings[:,0], timings[:,2] * 1e6, label=r'\texttt{greenlantern}', color='C6')
+
 ax.legend(loc='upper right')
 ax.set_xscale('log')
 ax.set_xlabel('Number of samples')
 ax.set_ylabel(r'Time per sample (\textmu s)')
+
+fig.savefig('assets/timing_versus_batman.png')
 plt.show()
 
 print('Maximum absolute error:', np.amax(timings[:,3]))

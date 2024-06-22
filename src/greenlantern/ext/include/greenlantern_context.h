@@ -12,7 +12,6 @@ typedef struct
 
     struct
     {
-        cl_kernel ellipsoid_transit_flux_single;
         cl_kernel ellipsoid_transit_flux_vector;
         cl_kernel ellipsoid_transit_flux_binned_vector;
     }

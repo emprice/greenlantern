@@ -36,12 +36,6 @@ int greenlantern_context_init(greenlantern_context_object *context,
     if (err != CL_SUCCESS) return -1;
 
     err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
-        "ellipsoid_transit_flux_single",
-        &(context->kernels.ellipsoid_transit_flux_single));
-    if (err != CL_SUCCESS) return -1;
-    clRetainKernel(context->kernels.ellipsoid_transit_flux_single);
-
-    err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
         "ellipsoid_transit_flux_vector",
         &(context->kernels.ellipsoid_transit_flux_vector));
     if (err != CL_SUCCESS) return -1;
@@ -67,7 +61,6 @@ int greenlantern_context_init(greenlantern_context_object *context,
 void greenlantern_context_dealloc(greenlantern_context_object *self)
 {
     /* Release all kernel handles */
-    clReleaseKernel(self->kernels.ellipsoid_transit_flux_single);
     clReleaseKernel(self->kernels.ellipsoid_transit_flux_vector);
     clReleaseKernel(self->kernels.ellipsoid_transit_flux_binned_vector);
 

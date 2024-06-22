@@ -25,7 +25,7 @@ at the University of Chicago in Chicago, IL, USA.
 
 ## :white_check_mark: To-do list
 
- - [ ] Take time and orbital period as inputs instead of angle $\alpha$
+ - [x] Take time and orbital period as inputs instead of angle $\alpha$
  - [ ] Optionally handle elliptical orbits
 
 ## :sparkles: Credits

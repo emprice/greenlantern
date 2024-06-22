@@ -82,56 +82,9 @@ float ellipsoid_transit_flux_workgroup_body(int gid, int gsz,
     return integrand * norm;
 }
 
-__kernel void ellipsoid_transit_flux_single(__global const float *alpha_angs,
-    float a, float b, float c, float zs, float alpha0_ang, float beta_ang,
-    float gamma_ang, float q1, float q2, __global float *flux)
-{
-    int sid = get_global_id(0);     /* sample index */
-    int ns = get_global_size(0);    /* number of samples */
+#define LDA     (10)
 
-    int gid = get_local_id(0);       /* group index */
-    int gsz = get_local_size(0);     /* number of groups */
-
-    local float u1, u2;
-    local float2 alpha, beta, gamma;
-    local float3 ax;
-
-    if (gid == 0)
-    {
-        ax = (float3)(a, b, c);
-
-        /* precompute trig for alpha */
-        float alpha_ang = alpha_angs[sid] - alpha0_ang;
-        float sin_alpha, cos_alpha;
-        sin_alpha = sincos(alpha_ang, &cos_alpha);
-        alpha = (float2)(cos_alpha, sin_alpha);
-
-        /* precompute trig for beta */
-        float sin_beta, cos_beta;
-        sin_beta = sincos(beta_ang, &cos_beta);
-        beta = (float2)(cos_beta, sin_beta);
-
-        /* precompute trig for gamma */
-        float sin_gamma, cos_gamma;
-        sin_gamma = sincos(gamma_ang, &cos_gamma);
-        gamma = (float2)(cos_gamma, sin_gamma);
-
-        /* convert q limb darkening to u limb darkening */
-        float sqrt_q1 = sqrt(q1);
-        u1 = 2 * sqrt_q1 * q2;
-        u2 = sqrt_q1 * (1 - 2 * q2);
-    }
-    work_group_barrier(CLK_LOCAL_MEM_FENCE);
-
-    float Ival = ellipsoid_transit_flux_workgroup_body(gid, gsz,
-        alpha, beta, gamma, ax, zs, u1, u2);
-    float Ival_tot = work_group_reduce_add(Ival);
-    if (gid == 0) flux[sid] = (alpha.x > 0) ? (1. - M_1_PI * Ival_tot) : 1.;
-}
-
-#define LDA     (9)
-
-__kernel void ellipsoid_transit_flux_vector(__global const float *alpha_angs,
+__kernel void ellipsoid_transit_flux_vector(__global const float *time,
     __global const float *params, __global float *flux)
 {
     int pid = get_global_id(0);      /* parameters index */
@@ -140,8 +93,8 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *alpha_angs,
     int np = get_global_size(0);     /* number of parameter sets */
     int ns = get_global_size(1);     /* number of samples */
 
-    int gid = get_local_id(0);       /* group index */
-    int gsz = get_local_size(0);     /* number of groups */
+    int gid = get_local_id(0);       /* summation group index */
+    int gsz = get_local_size(0);     /* number of summation groups */
 
     pid /= gsz;
 
@@ -151,7 +104,8 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *alpha_angs,
     local float3 ax;
 
     /* pre-load the parameters for this work group */
-    if (gid < LDA) local_params[gid] = params[pid*LDA+gid];
+    for (int off = gid; off < LDA; off += gsz)
+        local_params[off] = params[pid*LDA+off];
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     if (gid == 0)
@@ -161,11 +115,16 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *alpha_angs,
         float c = local_params[2];   /* semiaxis along z */
         ax = (float3)(a, b, c);
 
-        zs = local_params[3];   /* distance from ellipsoid to disk */
+        zs = local_params[3];           /* distance from ellipsoid to disk */
+        float porb = local_params[9];   /* orbital period */
+        float t0 = local_params[4];     /* midtransit offset in time */
+
+        float t = time[sid];
+        float this_alpha = 2 * M_PI * (t / porb);
+        float alpha0 = 2 * M_PI * (t0 / porb);
 
         /* precompute trig for alpha */
-        float alpha0_ang = local_params[4]; /* offset in mean anomaly */
-        float alpha_ang = alpha_angs[sid] - alpha0_ang;
+        float alpha_ang = this_alpha - alpha0;
         float sin_alpha, cos_alpha;
         sin_alpha = sincos(alpha_ang, &cos_alpha);
         alpha = (float2)(cos_alpha, sin_alpha);
@@ -198,8 +157,8 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *alpha_angs,
     if (gid == 0) flux[pid*ns+sid] = (alpha.x > 0) ? (1. - M_1_PI * Ival_tot) : 1.;
 }
 
-__kernel void ellipsoid_transit_flux_binned_vector(__global const float *alpha_angs,
-    __global const float *params, float dalpha_bin, __global float *flux)
+__kernel void ellipsoid_transit_flux_binned_vector(__global const float *time,
+    __global const float *params, float dt_bin, __global float *flux)
 {
     int pid = get_global_id(0);     /* parameters index */
     int psz = get_global_size(0);   /* number of parameter sets */
@@ -207,22 +166,23 @@ __kernel void ellipsoid_transit_flux_binned_vector(__global const float *alpha_a
     int sid = get_global_id(1);     /* sample index */
     int ssz = get_global_size(1);   /* number of samples */
 
-    int gid1 = get_local_id(0);
+    int gid1 = get_local_id(0);     /* workgroup dim 0, summation */
     int gsz1 = get_local_size(0);
 
-    int gid2 = get_local_id(1);
+    int gid2 = get_local_id(1);     /* workgroup dim 1, binning */
     int gsz2 = get_local_size(1);
 
     pid /= gsz1; psz /= gsz1;
     sid /= gsz2; ssz /= gsz2;
 
     local float local_params[LDA];
-    local float u1, u2, zs, alpha_ang_mid;
+    local float u1, u2, zs, alpha_ang_mid, dalpha_bin;
     local float2 beta, gamma;
     local float3 ax;
 
     /* pre-load the parameters for this work group */
-    if ((gid1 < LDA) && (gid2 == 0)) local_params[gid1] = params[pid*LDA+gid1];
+    for (int off = gid1; (gid2 == 0) && (off < LDA); off += gsz1)
+        local_params[off] = params[pid*LDA+off];
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     if ((gid1 == 0) && (gid2 == 0))
@@ -232,10 +192,16 @@ __kernel void ellipsoid_transit_flux_binned_vector(__global const float *alpha_a
         float c = local_params[2];   /* semiaxis along z */
         ax = (float3)(a, b, c);
 
-        zs = local_params[3];       /* distance from ellipsoid to disk */
+        zs = local_params[3];           /* distance from ellipsoid to disk */
+        float porb = local_params[9];   /* orbital period */
+        float t0 = local_params[4];     /* midtransit offset in time */
 
-        float alpha0_ang = local_params[4]; /* offset in mean anomaly */
-        alpha_ang_mid = alpha_angs[sid] - alpha0_ang;
+        float t = time[sid];
+        float this_alpha = 2 * M_PI * (t / porb);
+        float alpha0 = 2 * M_PI * (t0 / porb);
+        dalpha_bin = 2 * M_PI * (dt_bin / porb);
+
+        alpha_ang_mid = this_alpha - alpha0;
 
         /* precompute trig for beta */
         float beta_ang = local_params[5];   /* complement of inclination */

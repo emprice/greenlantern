@@ -8,19 +8,18 @@ from matplotlib.lines import Line2D
 from nordplotlib.png import install; install()
 
 Porb = 2 * np.pi
-Omega = 2 * np.pi / Porb
-alpha0, gamma = 0., 0.
+t0, gamma = 0., 0.
 
 ctx = pocky.Context.default()
 ctx1 = greenlantern.Context(ctx)
 
-nalpha = 10000
-alpha = np.linspace(-0.3, 0.3, nalpha)
-alpha_dev = pocky.BufferPair(ctx, alpha.astype(np.float32))
-alpha_dev.copy_to_device()
-alpha_dev.dirty = False
+nt = 10000
+time = np.linspace(-0.3, 0.3, nt)
+time_dev = pocky.BufferPair(ctx, time.astype(np.float32))
+time_dev.copy_to_device()
+time_dev.dirty = False
 
-flux = np.empty((1, nalpha), dtype=np.float32)
+flux = np.empty((1, nt), dtype=np.float32)
 flux = pocky.BufferPair(ctx, flux)
 
 fig, axs = plt.subplots(nrows=3, figsize=(8, 8.5),
@@ -37,7 +36,7 @@ for i, (rr, zs, beta_deg, u1, u2) in \
     q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
 
     batp = batman.TransitParams()
-    batp.t0 = alpha0
+    batp.t0 = t0
     batp.per = Porb
     batp.rp = rr
     batp.a = zs
@@ -47,23 +46,23 @@ for i, (rr, zs, beta_deg, u1, u2) in \
     batp.u = [u1, u2]
     batp.limb_dark = 'quadratic'
 
-    model = batman.TransitModel(batp, alpha)
+    model = batman.TransitModel(batp, time)
     model_flux = model.light_curve(batp)
 
-    params = np.array([[rr, rr, rr, zs, alpha0, beta, gamma, q1, q2]], dtype=np.float32)
+    params = np.array([[rr, rr, rr, zs, t0, beta, gamma, q1, q2, Porb]], dtype=np.float32)
     params = pocky.BufferPair(ctx, params)
-    ctx1.ellipsoid_transit_flux(alpha_dev, params, output=flux)
+    ctx1.ellipsoid_transit_flux(time_dev, params, output=flux)
 
-    axs[0].plot(alpha, model_flux, lw=2, ls='solid', alpha=0.6, c=f'C{i}')
-    axs[0].plot(alpha, flux.host[0], lw=2, ls='dashed', alpha=1, c=f'C{i}')
+    axs[0].plot(time, model_flux, lw=2, ls='solid', alpha=0.6, c=f'C{i}')
+    axs[0].plot(time, flux.host[0], lw=2, ls='dashed', alpha=1, c=f'C{i}')
 
-    axs[1].scatter(alpha, 1e6 * (flux.host[0] - model_flux),
+    axs[1].scatter(time, 1e6 * (flux.host[0] - model_flux),
         alpha=0.05, s=8, c=f'C{i}', rasterized=True)
 
     label = rf'$R_p / R_\star = {rr:.2f}, d_\star = {zs:.0f}, i = {90.-beta_deg:.0f}^\circ, u_1 = {u1:.2f}, u_2 = {u2:.2f}$'
     handles.append(Line2D([0], [0], c=f'C{i}', lw=2, label=label))
 
-axs[1].set_xlabel(r'Mean anomaly $\alpha$ (rad)')
+axs[1].set_xlabel(r'Time $t$ (code units)')
 axs[0].set_xticklabels([])
 axs[0].set_xlim(axs[1].get_xlim())
 
@@ -74,6 +73,7 @@ fig.legend(handles=handles, bbox_transform=axs[2].transAxes,
     bbox_to_anchor=(0, 0, 1, 1), loc='lower left', ncols=1, frameon=False,
     columnspacing=1, borderpad=-0.5, handlelength=1.5, handletextpad=0.5, fontsize=16)
 axs[2].set_axis_off()
-
 fig.align_ylabels()
+
+fig.savefig('assets/validation_with_batman.png')
 plt.show()
