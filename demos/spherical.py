@@ -4,6 +4,7 @@ import batman
 import numpy as np
 import greenlantern
 import matplotlib.pyplot as plt
+import scipy.optimize as opt
 from matplotlib.lines import Line2D
 from nordplotlib.png import install; install()
 
@@ -13,7 +14,7 @@ t0, gamma = 0., 0.
 ctx = pocky.Context.default()
 ctx1 = greenlantern.Context(ctx)
 
-nt = 10000
+nt = 1000
 time = np.linspace(-0.3, 0.3, nt)
 time_dev = pocky.BufferPair(ctx, time.astype(np.float32))
 time_dev.copy_to_device()
@@ -27,10 +28,12 @@ fig, axs = plt.subplots(nrows=3, figsize=(8, 8.5),
 
 handles = list()
 
-for i, (rr, zs, beta_deg, u1, u2) in \
+for i, (rr, semimajor, beta_deg, u1, u2, ecc, omega_deg) in \
         enumerate(zip([0.1, 0.05, 0.07, 0.09], [5., 10., 20., 3.], [10., 5., -2., -15.],
-                      [0.1, 0.3, 0.4, 0.05], [-0.02, 0.05, 0.2, -0.04])):
+                      [0.1, 0.3, 0.4, 0.05], [-0.02, 0.05, 0.2, -0.04],
+                      [0.05, 0.2, 0.1, 0.15], [80., 30., 90., -60.])):
     beta = np.deg2rad(beta_deg)
+    omega = np.deg2rad(omega_deg)
 
     q1 = (u1 + u2)**2
     q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
@@ -39,19 +42,19 @@ for i, (rr, zs, beta_deg, u1, u2) in \
     batp.t0 = t0
     batp.per = Porb
     batp.rp = rr
-    batp.a = zs
+    batp.a = semimajor
     batp.inc = 90. - beta_deg
-    batp.ecc = 0.
-    batp.w = 90.
+    batp.ecc = ecc
+    batp.w = omega_deg
     batp.u = [u1, u2]
     batp.limb_dark = 'quadratic'
 
-    model = batman.TransitModel(batp, time)
+    model = batman.TransitModel(batp, time, fac=1e-4)
     model_flux = model.light_curve(batp)
 
-    params = np.array([[rr, rr, rr, zs, t0, beta, gamma, q1, q2, Porb]], dtype=np.float32)
+    params = np.array([[rr, rr, rr, semimajor, t0, beta, gamma, q1, q2, Porb, ecc, omega]], dtype=np.float32)
     params = pocky.BufferPair(ctx, params)
-    ctx1.ellipsoid_transit_flux(time_dev, params, output=flux)
+    ctx1.ellipsoid_transit_flux(time_dev, params, output=flux, eccentric=True)
 
     axs[0].plot(time, model_flux, lw=2, ls='solid', alpha=0.6, c=f'C{i}')
     axs[0].plot(time, flux.host[0], lw=2, ls='dashed', alpha=1, c=f'C{i}')
@@ -59,7 +62,7 @@ for i, (rr, zs, beta_deg, u1, u2) in \
     axs[1].scatter(time, 1e6 * (flux.host[0] - model_flux),
         alpha=0.05, s=8, c=f'C{i}', rasterized=True)
 
-    label = rf'$R_p / R_\star = {rr:.2f}, d_\star = {zs:.0f}, i = {90.-beta_deg:.0f}^\circ, u_1 = {u1:.2f}, u_2 = {u2:.2f}$'
+    label = rf'$R_p / R_\star = {rr:.2f}, d_\star = {semimajor:.0f}, i = {90.-beta_deg:.0f}^\circ, u_1 = {u1:.2f}, u_2 = {u2:.2f}$'
     handles.append(Line2D([0], [0], c=f'C{i}', lw=2, label=label))
 
 axs[1].set_xlabel(r'Time $t$ (code units)')

@@ -36,7 +36,7 @@ float3 compute_integrand(float2 theta, float x0, float dx,
 }
 
 float ellipsoid_transit_flux_workgroup_body(int gid, int gsz,
-    float2 alpha, float2 beta, float2 gamma, float3 ax, float zs, float u1, float u2)
+    float2 alpha, float2 beta, float2 gamma, float3 ax, float ds, float u1, float u2)
 {
     float3 ax2 = ax * ax;
     float2 alpha2 = alpha * alpha;
@@ -49,12 +49,12 @@ float ellipsoid_transit_flux_workgroup_body(int gid, int gsz,
     float r = beta.y * gamma.x + alpha.y * beta.x * gamma.y;
     float s = alpha.y * beta.x * gamma.x - beta.y * gamma.y;
 
-    float x0 = -zs * alpha.x * beta.y;
+    float x0 = -ds * alpha.x * beta.y;
     float dx2 = ax2.y + (ax.x - ax.y) * (ax.x + ax.y) * q * q +
         -(ax.y - ax.z) * (ax.y + ax.z) * alpha2.x * beta2.y;
     float dx = sqrt(dx2);
 
-    float y0 = zs * alpha.y * (ax2.x - (ax.x - ax.z) * (ax.x + ax.z) *
+    float y0 = ds * alpha.y * (ax2.x - (ax.x - ax.z) * (ax.x + ax.z) *
         alpha2.x * beta2.y - (ax.x - ax.y) * (ax.x + ax.y) * u * u) / dx2;
     float y1 = alpha.x * ((ax.x - ax.z) * (ax.x + ax.z) * alpha.y * beta.y +
         -(ax.x - ax.y) * (ax.x + ax.y) * gamma.x * u) / dx;
@@ -88,10 +88,10 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *time,
     __global const float *params, __global float *flux)
 {
     int pid = get_global_id(0);      /* parameters index */
-    int sid = get_global_id(1);      /* sample index */
+    int psz = get_global_size(0);    /* number of parameter sets */
 
-    int np = get_global_size(0);     /* number of parameter sets */
-    int ns = get_global_size(1);     /* number of samples */
+    int sid = get_global_id(1);      /* sample index */
+    int ssz = get_global_size(1);    /* number of samples */
 
     int gid = get_local_id(0);       /* summation group index */
     int gsz = get_local_size(0);     /* number of summation groups */
@@ -99,7 +99,7 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *time,
     pid /= gsz;
 
     local float local_params[LDA];
-    local float u1, u2, zs;
+    local float u1, u2, ds;
     local float2 alpha, beta, gamma;
     local float3 ax;
 
@@ -115,7 +115,7 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *time,
         float c = local_params[2];   /* semiaxis along z */
         ax = (float3)(a, b, c);
 
-        zs = local_params[3];           /* distance from ellipsoid to disk */
+        ds = local_params[3];           /* distance from ellipsoid to disk */
         float porb = local_params[9];   /* orbital period */
         float t0 = local_params[4];     /* midtransit offset in time */
 
@@ -151,10 +151,10 @@ __kernel void ellipsoid_transit_flux_vector(__global const float *time,
     work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     float Ival = ellipsoid_transit_flux_workgroup_body(gid, gsz,
-        alpha, beta, gamma, ax, zs, u1, u2);
+        alpha, beta, gamma, ax, ds, u1, u2);
     float Ival_tot = work_group_reduce_add(Ival);
 
-    if (gid == 0) flux[pid*ns+sid] = (alpha.x > 0) ? (1. - M_1_PI * Ival_tot) : 1.;
+    if (gid == 0) flux[pid*ssz+sid] = (alpha.x > 0) ? (1. - M_1_PI * Ival_tot) : 1.;
 }
 
 __kernel void ellipsoid_transit_flux_binned_vector(__global const float *time,
@@ -176,7 +176,7 @@ __kernel void ellipsoid_transit_flux_binned_vector(__global const float *time,
     sid /= gsz2; ssz /= gsz2;
 
     local float local_params[LDA];
-    local float u1, u2, zs, alpha_ang_mid, dalpha_bin;
+    local float u1, u2, ds, alpha_ang_mid, dalpha_bin;
     local float2 beta, gamma;
     local float3 ax;
 
@@ -192,7 +192,7 @@ __kernel void ellipsoid_transit_flux_binned_vector(__global const float *time,
         float c = local_params[2];   /* semiaxis along z */
         ax = (float3)(a, b, c);
 
-        zs = local_params[3];           /* distance from ellipsoid to disk */
+        ds = local_params[3];           /* distance from ellipsoid to disk */
         float porb = local_params[9];   /* orbital period */
         float t0 = local_params[4];     /* midtransit offset in time */
 
@@ -238,7 +238,7 @@ __kernel void ellipsoid_transit_flux_binned_vector(__global const float *time,
     {
         Ival = (((gid2 == 0) || (gid2 == gsz2 - 1)) ? 1 : ((gid2 & 0x1) ? 4 : 2)) *
             ellipsoid_transit_flux_workgroup_body(gid1, gsz1,
-                alpha, beta, gamma, ax, zs, u1, u2);
+                alpha, beta, gamma, ax, ds, u1, u2);
     }
 
     float Ival_tot = work_group_reduce_add(Ival);
@@ -246,5 +246,187 @@ __kernel void ellipsoid_transit_flux_binned_vector(__global const float *time,
 
     if ((gid1 == 0) && (gid2 == 0)) flux[pid*ssz+sid] = 1. - M_1_PI * Ival_tot;
 }
+
+#undef LDA
+#define LDA     (12)
+
+__kernel void ellipsoid_eccentric_transit_flux_vector(__global const float *time,
+    __global const float *params, __global float *flux)
+{
+    int pid = get_global_id(0);      /* parameters index */
+    int psz = get_global_size(0);    /* number of parameter sets */
+
+    int sid = get_global_id(1);      /* sample index */
+    int ssz = get_global_size(1);    /* number of samples */
+
+    int gid = get_local_id(0);       /* summation group index */
+    int gsz = get_local_size(0);     /* number of summation groups */
+
+    pid /= gsz;
+
+    local float local_params[LDA];
+    local float u1, u2, ds, tmp;
+    local float2 alpha, beta, gamma;
+    local float3 ax;
+
+    /* pre-load the parameters for this work group */
+    for (int off = gid; off < LDA; off += gsz)
+        local_params[off] = params[pid*LDA+off];
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    if (gid == 0)
+    {
+        float a = local_params[0];   /* semiaxis along x */
+        float b = local_params[1];   /* semiaxis along y */
+        float c = local_params[2];   /* semiaxis along z */
+        ax = (float3)(a, b, c);
+
+        float semimajor = local_params[3];  /* orbit semimajor axis */
+        float porb = local_params[9];       /* orbital period */
+
+        /* we have to compute the time of periastron first */
+        float t0 = local_params[4];         /* midtransit offset in time */
+        float ecc = local_params[10];       /* eccentricity */
+        float omega = local_params[11];     /* argument of periastron */
+        float tp = time_of_periastron_calc(ecc, omega, t0, 0.5 * M_1_PI * porb);
+
+        /* compute the true anomaly and the orbital distance */
+        float t = time[sid];
+        float this_M = 2 * M_PI * ((t - tp) / porb);
+        float alpha_ang = trueanom_calc(this_M, ecc);
+        ds = semimajor * (1 - ecc) * (1 + ecc) / (1 + ecc * cos(alpha_ang));
+        alpha_ang -= M_PI_2 - omega;
+
+        /* precompute trig for alpha */
+        float sin_alpha, cos_alpha;
+        sin_alpha = sincos(alpha_ang, &cos_alpha);
+        alpha = (float2)(cos_alpha, sin_alpha);
+
+        /* precompute trig for beta */
+        float beta_ang = local_params[5];   /* complement of inclination */
+        float sin_beta, cos_beta;
+        sin_beta = sincos(beta_ang, &cos_beta);
+        beta = (float2)(cos_beta, sin_beta);
+
+        /* precompute trig for gamma */
+        float gamma_ang = local_params[6];  /* obliquity */
+        float sin_gamma, cos_gamma;
+        sin_gamma = sincos(gamma_ang, &cos_gamma);
+        gamma = (float2)(cos_gamma, sin_gamma);
+
+        /* convert q limb darkening to u limb darkening */
+        float q1 = local_params[7];   /* limb darkening q1 */
+        float q2 = local_params[8];   /* limb darkening q2 */
+        float sqrt_q1 = sqrt(q1);
+        u1 = 2 * sqrt_q1 * q2;
+        u2 = sqrt_q1 * (1 - 2 * q2);
+    }
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    float Ival = ellipsoid_transit_flux_workgroup_body(gid, gsz,
+        alpha, beta, gamma, ax, ds, u1, u2);
+    float Ival_tot = work_group_reduce_add(Ival);
+
+    if (gid == 0) flux[pid*ssz+sid] = (alpha.x > 0) ? (1. - M_1_PI * Ival_tot) : 1.;
+}
+
+__kernel void ellipsoid_eccentric_transit_flux_binned_vector(__global const float *time,
+    __global const float *params, float dt_bin, __global float *flux)
+{
+    int pid = get_global_id(0);     /* parameters index */
+    int psz = get_global_size(0);   /* number of parameter sets */
+
+    int sid = get_global_id(1);     /* sample index */
+    int ssz = get_global_size(1);   /* number of samples */
+
+    int gid1 = get_local_id(0);     /* workgroup dim 0, summation */
+    int gsz1 = get_local_size(0);
+
+    int gid2 = get_local_id(1);     /* workgroup dim 1, binning */
+    int gsz2 = get_local_size(1);
+
+    pid /= gsz1; psz /= gsz1;
+    sid /= gsz2; ssz /= gsz2;
+
+    local float local_params[LDA];
+    local float u1, u2, mid_M, semimajor, porb, ecc, omega, dalpha_bin;
+    local float2 beta, gamma;
+    local float3 ax;
+
+    /* pre-load the parameters for this work group */
+    for (int off = gid1; (gid2 == 0) && (off < LDA); off += gsz1)
+        local_params[off] = params[pid*LDA+off];
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    if ((gid1 == 0) && (gid2 == 0))
+    {
+        float a = local_params[0];   /* semiaxis along x */
+        float b = local_params[1];   /* semiaxis along y */
+        float c = local_params[2];   /* semiaxis along z */
+        ax = (float3)(a, b, c);
+
+        semimajor = local_params[3];  /* orbit semimajor axis */
+        porb = local_params[9];       /* orbital period */
+
+        /* we have to compute the time of periastron first */
+        float t0 = local_params[4];     /* midtransit offset in time */
+        ecc = local_params[10];         /* eccentricity */
+        omega = local_params[11];       /* argument of periastron */
+        float tp = time_of_periastron_calc(ecc, omega, t0, 0.5 * M_1_PI * porb);
+
+        /* compute the mean anomaly */
+        float t = time[sid];
+        mid_M = 2 * M_PI * ((t - tp) / porb);
+
+        /* precompute trig for beta */
+        float beta_ang = local_params[5];   /* complement of inclination */
+        float sin_beta, cos_beta;
+        sin_beta = sincos(beta_ang, &cos_beta);
+        beta = (float2)(cos_beta, sin_beta);
+
+        /* precompute trig for gamma */
+        float gamma_ang = local_params[6];  /* obliquity */
+        float sin_gamma, cos_gamma;
+        sin_gamma = sincos(gamma_ang, &cos_gamma);
+        gamma = (float2)(cos_gamma, sin_gamma);
+
+        /* convert q limb darkening to u limb darkening */
+        float q1 = local_params[7];   /* limb darkening q1 */
+        float q2 = local_params[8];   /* limb darkening q2 */
+        float sqrt_q1 = sqrt(q1);
+        u1 = 2 * sqrt_q1 * q2;
+        u2 = sqrt_q1 * (1 - 2 * q2);
+    }
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    float Ival = 0;
+
+    /* integrating over mean anomaly, which is linear in time */
+    float h_M = 2 * M_PI * (dt_bin / porb) / (gsz2 - 1);
+    float this_M = mid_M + (gid2 - (gsz2 - 1) / 2) * h_M;
+
+    float alpha_ang = trueanom_calc(this_M, ecc);
+    float ds = semimajor * (1 - ecc) * (1 + ecc) / (1 + ecc * cos(alpha_ang));
+    alpha_ang -= M_PI_2 - omega;
+
+    /* precompute trig for alpha */
+    float sin_alpha, cos_alpha;
+    sin_alpha = sincos(alpha_ang, &cos_alpha);
+    float2 alpha = (float2)(cos_alpha, sin_alpha);
+
+    if (alpha.x > 0)
+    {
+        Ival = (((gid2 == 0) || (gid2 == gsz2 - 1)) ? 1 : ((gid2 & 0x1) ? 4 : 2)) *
+            ellipsoid_transit_flux_workgroup_body(gid1, gsz1,
+                alpha, beta, gamma, ax, ds, u1, u2);
+    }
+
+    float Ival_tot = work_group_reduce_add(Ival);
+    Ival_tot /= 3 * (gsz2 - 1);
+
+    if ((gid1 == 0) && (gid2 == 0)) flux[pid*ssz+sid] = 1. - M_1_PI * Ival_tot;
+}
+
+#undef LDA
 
 /* vim: set ft=opencl.doxygen: */

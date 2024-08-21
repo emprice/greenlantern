@@ -47,6 +47,18 @@ int greenlantern_context_init(greenlantern_context_object *context,
     if (err != CL_SUCCESS) return -1;
     clRetainKernel(context->kernels.ellipsoid_transit_flux_binned_vector);
 
+    err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
+        "ellipsoid_eccentric_transit_flux_vector",
+        &(context->kernels.ellipsoid_eccentric_transit_flux_vector));
+    if (err != CL_SUCCESS) return -1;
+    clRetainKernel(context->kernels.ellipsoid_eccentric_transit_flux_vector);
+
+    err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
+        "ellipsoid_eccentric_transit_flux_binned_vector",
+        &(context->kernels.ellipsoid_eccentric_transit_flux_binned_vector));
+    if (err != CL_SUCCESS) return -1;
+    clRetainKernel(context->kernels.ellipsoid_eccentric_transit_flux_binned_vector);
+
     /* Release any remaining kernel handles */
     for (idx = 0; idx < num_kernels; ++idx) clReleaseKernel(kernels[idx]);
     free(kernels);
@@ -63,6 +75,8 @@ void greenlantern_context_dealloc(greenlantern_context_object *self)
     /* Release all kernel handles */
     clReleaseKernel(self->kernels.ellipsoid_transit_flux_vector);
     clReleaseKernel(self->kernels.ellipsoid_transit_flux_binned_vector);
+    clReleaseKernel(self->kernels.ellipsoid_eccentric_transit_flux_vector);
+    clReleaseKernel(self->kernels.ellipsoid_eccentric_transit_flux_binned_vector);
 
     /* Release other handles */
     clReleaseProgram(self->program);
@@ -81,10 +95,12 @@ PyMethodDef greenlantern_context_methods[] = {
       "pocky.BufferPair, output: pocky.BufferPair) -> pocky.BufferPair\n"
       "Compute an ellipsoid transit lightcurve.\n\n"
       "Args:\n"
-      "  alpha: Mean anomaly of the orbit\n"
+      "  time: Time of the desired observation\n"
       "  params: Planet and transit parameters\n"
-      "  binsize: Mean anomaly bin size\n"
-      "  output: Optional pre-allocated output buffer\n\n"
+      "  binsize: Time bin size\n"
+      "  eccentric: Flag to optionally enable eccentricity\n"
+      "  output: Optional pre-allocated output buffer\n"
+      "  queue: Optional integer indicating the queue for work\n\n"
       "Returns:\n"
       "  A buffer of output values\n" },
 

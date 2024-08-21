@@ -7,20 +7,20 @@ import scipy.optimize as opt
 import matplotlib.pyplot as plt
 from nordplotlib.png import install; install()
 
-a, b, c, zs, t0, beta, gamma, u1, u2, Porb = \
-    0.1, 0.1, 0.1, 5., 0.01, -0.02, 0., 0.1, -0.02, 2 * np.pi
+rr, semimajor, tc, beta, gamma, u1, u2, Porb, ecc, omega = \
+    0.1, 5., 0.01, -0.02, 0., 0.1, -0.03, 2 * np.pi, 0.3, 0.2
 
 q1 = (u1 + u2)**2
 q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
 
 batp = batman.TransitParams()
-batp.t0 = t0
+batp.t0 = tc
 batp.per = Porb
-batp.rp = a
-batp.a = zs
+batp.rp = rr
+batp.a = semimajor
 batp.inc = 90. - np.rad2deg(beta)
-batp.ecc = 0.
-batp.w = 90.
+batp.ecc = ecc
+batp.w = np.rad2deg(omega)
 batp.u = [u1, u2]
 batp.limb_dark = 'quadratic'
 
@@ -34,7 +34,7 @@ def generate_timings():
         nt = (2.**log2_nt).astype(int)
         time_host = np.linspace(-0.3, 0.3, nt)
 
-        model = batman.TransitModel(batp, time_host)
+        model = batman.TransitModel(batp, time_host, fac=1e-4)
 
         dt_batman = 0
         for _ in range(ntries):
@@ -48,7 +48,7 @@ def generate_timings():
         time_dev.copy_to_device()
         time_dev.dirty = False
 
-        params = np.array([[a, a, a, zs, t0, beta, gamma, q1, q2, Porb]], dtype=np.float32)
+        params = np.array([[rr, rr, rr, semimajor, tc, beta, gamma, q1, q2, Porb, ecc, omega]], dtype=np.float32)
         params = pocky.BufferPair(ctx, params)
 
         flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
@@ -57,7 +57,7 @@ def generate_timings():
         dt_greenlantern = 0
         for _ in range(ntries):
             t0 = time.time()
-            ctx1.ellipsoid_transit_flux(time_dev, params, output=flux)
+            ctx1.ellipsoid_transit_flux(time_dev, params, output=flux, eccentric=True)
             t1 = time.time()
             dt_greenlantern += (t1 - t0) / flux.host.size
         dt_greenlantern /= ntries

@@ -11,10 +11,9 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     PyObject *args, PyObject *kwargs)
 {
     char buf[BUFSIZ];
-    char *keys[] = { "alpha", "params", "binsize", "output", "queue", NULL };
+    char *keys[] = { "alpha", "params", "binsize", "eccentric", "output", "queue", NULL };
 
-    PyObject *queue_idx = NULL;
-    PyObject *binsize = NULL;
+    PyObject *binsize = NULL, *queue_idx = NULL, *eccentric_flag = Py_False;
     pocky_bufpair_object *input, *params, *output = NULL;
 
     cl_int err;
@@ -25,10 +24,10 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     long worksz[2];
     size_t kernsz[2], locsz[2];
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!|$O!O!O!", keys,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!|$O!O!O!O!", keys,
         pocky_api->bufpair_type, &input, pocky_api->bufpair_type, &params,
-        &PyFloat_Type, &binsize, pocky_api->bufpair_type, &output,
-        &PyLong_Type, &queue_idx)) return NULL;
+        &PyFloat_Type, &binsize, &PyBool_Type, &eccentric_flag,
+        pocky_api->bufpair_type, &output, &PyLong_Type, &queue_idx)) return NULL;
 
     if ((input->host == NULL) ||
         (!PyArray_CheckExact((PyArrayObject *) input->host)) ||
@@ -81,8 +80,16 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     }
 
     /* Choose the appropriate kernel */
-    if (!binsize) kernel = context->kernels.ellipsoid_transit_flux_vector;
-    else kernel = context->kernels.ellipsoid_transit_flux_binned_vector;
+    if (eccentric_flag == Py_False)
+    {
+        if (!binsize) kernel = context->kernels.ellipsoid_transit_flux_vector;
+        else kernel = context->kernels.ellipsoid_transit_flux_binned_vector;
+    }
+    else
+    {
+        if (!binsize) kernel = context->kernels.ellipsoid_eccentric_transit_flux_vector;
+        else kernel = context->kernels.ellipsoid_eccentric_transit_flux_binned_vector;
+    }
 
     /* Copy data to the device */
     if (input->dirty == Py_True)
