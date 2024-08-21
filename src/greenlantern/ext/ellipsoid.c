@@ -161,6 +161,7 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
         PyErr_SetString(greenlantern_ocl_error, buf);
         return NULL;
     }
+    clReleaseEvent(event);
 
     /* Copy data back and block until we have all the results */
     err = clEnqueueReadBuffer(queue, output->device,
