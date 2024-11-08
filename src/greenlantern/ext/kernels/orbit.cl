@@ -136,13 +136,13 @@ float time_of_periastron_calc(float e, float om, float tc, float n)
     return n * meananom + tc;
 }
 
-__kernel void eccentric_anomaly(__global float *M, float e, __global float *E)
+kernel void eccentric_anomaly(global float *M, float e, global float *E)
 {
     int gid = get_global_id(0);
     E[gid] = eccanom_calc(M[gid], e);
 }
 
-__kernel void true_anomaly(__global float *M, float e, __global float *F)
+kernel void true_anomaly(global float *M, float e, global float *F)
 {
     int gid = get_global_id(0);
     F[gid] = trueanom_calc(M[gid], e);

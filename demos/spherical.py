@@ -8,8 +8,14 @@ import scipy.optimize as opt
 from matplotlib.lines import Line2D
 from nordplotlib.png import install; install()
 
+np.random.seed(314159)
+
 Porb = 2 * np.pi
-t0, gamma = 0., 0.
+t0 = 0.
+
+zeta = np.random.uniform(0, 2 * np.pi)
+eta  = np.random.uniform(-0.5 * np.pi, 0.5 * np.pi)
+xi   = np.random.uniform(0, 2 * np.pi)
 
 ctx = pocky.Context.default()
 ctx1 = greenlantern.Context(ctx)
@@ -52,7 +58,7 @@ for i, (rr, semimajor, beta_deg, u1, u2, ecc, omega_deg) in \
     model = batman.TransitModel(batp, time, fac=1e-4)
     model_flux = model.light_curve(batp)
 
-    params = np.array([[rr, rr, rr, semimajor, t0, beta, gamma, q1, q2, Porb, ecc, omega]], dtype=np.float32)
+    params = np.array([[rr, rr, rr, semimajor, t0, beta, zeta, eta, xi, q1, q2, Porb, ecc, omega]], dtype=np.float32)
     params = pocky.BufferPair(ctx, params)
     ctx1.ellipsoid_transit_flux(time_dev, params, output=flux, eccentric=True)
 

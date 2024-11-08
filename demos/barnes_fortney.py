@@ -18,6 +18,7 @@ Ms = 1.1 * MSun
 Rs = 1.146 * RSun
 Rp = 1.347 * RJup
 inc = 86.68
+zeta, eta = 0., 0.
 u1_plus_u2 = 0.640
 u1_minus_u2 = 0 #-0.055
 
@@ -55,7 +56,7 @@ def spherical_model(theta, time):
     q1 = (u1 + u2)**2
     q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
 
-    params = np.array([[r, r, r, zs, 0., beta, 0., q1, q2, Porb]], dtype=np.float32)
+    params = np.array([[r, r, r, zs, 0., beta, 0., 0., 0., q1, q2, Porb]], dtype=np.float32)
     params = pocky.BufferPair(ctx, params)
 
     return ctx1.ellipsoid_transit_flux(time, params)
@@ -71,11 +72,12 @@ def log_likelihood(theta, time, flux, sigma):
     model = spherical_model(theta, time)
     return -0.5 * np.sum((flux.host - model.host)**2 / sigma**2) + log_prior(theta)
 
-for ax, impact, gam, color, fit in zip([ax1, ax1, ax1, ax2, ax3, ax3, ax3, ax4, ax4, ax4, ax4, ax5, ax5, ax5, ax5, ax6, ax6, ax6, ax6],
-                                [0., 0.3, 0.6, 0.7, 0.8, 0.9, 1., 0.35, 0.35, 0.35, 0.35, 0.7, 0.7, 0.7, 0.7, 0.83, 0.83, 0.83, 0.83],
-                                [0., 0., 0., 0., 0., 0., 0., 0., 15., 30., 45., 0., 15., 30., 45., 0., 15., 30., 45.],
-                                ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C0', 'C2', 'C4', 'C6', 'C0', 'C2', 'C4', 'C6', 'C0', 'C2', 'C4', 'C6'],
-                                [False, False, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True]):
+for ax, impact, xi_deg, color, fit in \
+        zip([ax1, ax1, ax1, ax2, ax3, ax3, ax3, ax4, ax4, ax4, ax4, ax5, ax5, ax5, ax5, ax6, ax6, ax6, ax6],
+            [0., 0.3, 0.6, 0.7, 0.8, 0.9, 1., 0.35, 0.35, 0.35, 0.35, 0.7, 0.7, 0.7, 0.7, 0.83, 0.83, 0.83, 0.83],
+            [0., 0., 0., 0., 0., 0., 0., 0., 15., 30., 45., 0., 15., 30., 45., 0., 15., 30., 45.],
+            ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C0', 'C2', 'C4', 'C6', 'C0', 'C2', 'C4', 'C6', 'C0', 'C2', 'C4', 'C6'],
+            [False, False, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True]):
     inc = np.arccos(impact / (d / Rs))
     inc = np.rad2deg(inc)
 
@@ -85,7 +87,7 @@ for ax, impact, gam, color, fit in zip([ax1, ax1, ax1, ax2, ax3, ax3, ax3, ax4, 
     zs = d / Rs
     t0 = 0.
     beta = np.deg2rad(90 - inc)
-    gamma = np.deg2rad(gam)
+    xi = np.deg2rad(xi_deg)
     u1 = 0.5 * (u1_plus_u2 + u1_minus_u2)
     u2 = 0.5 * (u1_plus_u2 - u1_minus_u2)
 
@@ -93,7 +95,7 @@ for ax, impact, gam, color, fit in zip([ax1, ax1, ax1, ax2, ax3, ax3, ax3, ax4, 
     q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
 
     if fit:
-        params = np.array([[a, b, c, zs, t0, beta, gamma, q1, q2, Porb]], dtype=np.float32)
+        params = np.array([[a, b, c, zs, t0, beta, zeta, eta, xi, q1, q2, Porb]], dtype=np.float32)
         params = pocky.BufferPair(ctx, params)
 
         flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
@@ -115,8 +117,8 @@ for ax, impact, gam, color, fit in zip([ax1, ax1, ax1, ax2, ax3, ax3, ax3, ax4, 
 
         ax.plot(time.host / hr, flux.host[0] - best_flux.host[0], c=color)
     else:
-        params = np.array([[a, b, c, zs, t0, beta, gamma, q1, q2, Porb],
-                           [r, r, r, zs, t0, beta, gamma, q1, q2, Porb]], dtype=np.float32)
+        params = np.array([[a, b, c, zs, t0, beta, zeta, eta, xi, q1, q2, Porb],
+                           [r, r, r, zs, t0, beta, zeta, eta, xi, q1, q2, Porb]], dtype=np.float32)
         params = pocky.BufferPair(ctx, params)
 
         flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
@@ -157,10 +159,10 @@ fig1.legend(handles=fig1_handles, bbox_transform=ax7.transAxes,
     bbox_to_anchor=(0, 0, 1, 0.5), loc='lower center', ncols=3, frameon=False,
     columnspacing=1, borderpad=-0.5, handlelength=1, handletextpad=0.3)
 
-fig2_handles = [Line2D([0], [0], c='C0', lw=1.5, label=r'$\gamma = 0^\circ$'),
-                Line2D([0], [0], c='C2', lw=1.5, label=r'$\gamma = 15^\circ$'),
-                Line2D([0], [0], c='C4', lw=1.5, label=r'$\gamma = 30^\circ$'),
-                Line2D([0], [0], c='C6', lw=1.5, label=r'$\gamma = 45^\circ$')]
+fig2_handles = [Line2D([0], [0], c='C0', lw=1.5, label=r'$\xi = 0^\circ$'),
+                Line2D([0], [0], c='C2', lw=1.5, label=r'$\xi = 15^\circ$'),
+                Line2D([0], [0], c='C4', lw=1.5, label=r'$\xi = 30^\circ$'),
+                Line2D([0], [0], c='C6', lw=1.5, label=r'$\xi = 45^\circ$')]
 fig2.legend(handles=fig2_handles, bbox_transform=ax8.transAxes,
     bbox_to_anchor=(0, 0, 1, 1), loc='lower center', ncols=4, frameon=False,
     columnspacing=1, borderpad=-0.5, handlelength=1, handletextpad=0.3)
