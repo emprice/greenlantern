@@ -21,6 +21,8 @@ extern const char greenlantern_ocl_fmt_internal[];
 
 extern PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     PyObject *args, PyObject *kwargs);
+extern PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
+    PyObject *args, PyObject *kwargs);
 
 #endif      /* GREENLANTERN_H */
 

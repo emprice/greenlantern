@@ -60,7 +60,7 @@ for i, (rr, semimajor, beta_deg, u1, u2, ecc, omega_deg) in \
 
     params = np.array([[rr, rr, rr, semimajor, t0, beta, zeta, eta, xi, q1, q2, Porb, ecc, omega]], dtype=np.float32)
     params = pocky.BufferPair(ctx, params)
-    ctx1.ellipsoid_transit_flux(time_dev, params, output=flux, eccentric=True)
+    ctx1.ellipsoid_transit_flux(time_dev, params, flux=flux, eccentric=True)
 
     axs[0].plot(time, model_flux, lw=2, ls='solid', alpha=0.6, c=f'C{i}')
     axs[0].plot(time, flux.host[0], lw=2, ls='dashed', alpha=1, c=f'C{i}')

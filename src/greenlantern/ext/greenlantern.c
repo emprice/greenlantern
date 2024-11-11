@@ -23,10 +23,10 @@ static PyMethodDef greenlantern_methods[] = {
 /** Module definition */
 struct PyModuleDef greenlantern_module = {
     PyModuleDef_HEAD_INIT,
-    "greenlantern.ext",           /* module name */
-    greenlantern_module_doc,      /* module documentation */
-    -1,                     /* size of per-interpreter state of the module */
-    greenlantern_methods          /* methods table */
+    "greenlantern.ext",         /* module name */
+    greenlantern_module_doc,    /* module documentation */
+    -1,                         /* size of per-interpreter state of the module */
+    greenlantern_methods        /* methods table */
 };
 
 /** Module entry point */

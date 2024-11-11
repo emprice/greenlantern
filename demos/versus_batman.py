@@ -57,7 +57,7 @@ def generate_timings():
         dt_greenlantern = 0
         for _ in range(ntries):
             t0 = time.time()
-            ctx1.ellipsoid_transit_flux(time_dev, params, output=flux, eccentric=True)
+            ctx1.ellipsoid_transit_flux(time_dev, params, flux=flux, eccentric=True)
             t1 = time.time()
             dt_greenlantern += (t1 - t0) / flux.host.size
         dt_greenlantern /= ntries

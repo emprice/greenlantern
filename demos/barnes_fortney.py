@@ -101,7 +101,7 @@ for ax, impact, xi_deg, color, fit in \
         flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
         flux = pocky.BufferPair(ctx, flux)
 
-        ctx1.ellipsoid_transit_flux(time, params, output=flux)
+        ctx1.ellipsoid_transit_flux(time, params, flux=flux)
 
         p0 = [r, zs, beta, u1_plus_u2]
         nwalkers, ndim = 50, len(p0)
@@ -124,7 +124,7 @@ for ax, impact, xi_deg, color, fit in \
         flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
         flux = pocky.BufferPair(ctx, flux)
 
-        ctx1.ellipsoid_transit_flux(time, params, output=flux)
+        ctx1.ellipsoid_transit_flux(time, params, flux=flux)
 
         ax.plot(time.host / hr, flux.host[0] - flux.host[1], c=color)
 

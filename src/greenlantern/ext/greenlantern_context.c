@@ -59,6 +59,11 @@ int greenlantern_context_init(greenlantern_context_object *context,
     if (err != CL_SUCCESS) return -1;
     clRetainKernel(context->kernels.ellipsoid_eccentric_transit_flux_binned_vector);
 
+    err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
+        "ellipsoid_transit_flux_dual", &(context->kernels.ellipsoid_transit_flux_dual));
+    if (err != CL_SUCCESS) return -1;
+    clRetainKernel(context->kernels.ellipsoid_transit_flux_dual);
+
     /* Release any remaining kernel handles */
     for (idx = 0; idx < num_kernels; ++idx) clReleaseKernel(kernels[idx]);
     free(kernels);
@@ -77,6 +82,7 @@ void greenlantern_context_dealloc(greenlantern_context_object *self)
     clReleaseKernel(self->kernels.ellipsoid_transit_flux_binned_vector);
     clReleaseKernel(self->kernels.ellipsoid_eccentric_transit_flux_vector);
     clReleaseKernel(self->kernels.ellipsoid_eccentric_transit_flux_binned_vector);
+    clReleaseKernel(self->kernels.ellipsoid_transit_flux_dual);
 
     /* Release other handles */
     clReleaseProgram(self->program);
@@ -91,18 +97,35 @@ PyMethodDef greenlantern_context_methods[] = {
     { "ellipsoid_transit_flux",
       (PyCFunction) ellipsoid_transit_flux,
       METH_VARARGS | METH_KEYWORDS,
-      "ellipsoid_transit_flux(alpha: pocky.BufferPair, params: "
-      "pocky.BufferPair, output: pocky.BufferPair) -> pocky.BufferPair\n"
+      "ellipsoid_transit_flux(time: pocky.BufferPair, params: "
+      "pocky.BufferPair, flux: pocky.BufferPair) -> pocky.BufferPair\n"
       "Compute an ellipsoid transit lightcurve.\n\n"
       "Args:\n"
       "  time: Time of the desired observation\n"
       "  params: Planet and transit parameters\n"
       "  binsize: Time bin size\n"
       "  eccentric: Flag to optionally enable eccentricity\n"
-      "  output: Optional pre-allocated output buffer\n"
+      "  flux: Optional pre-allocated flux buffer\n"
       "  queue: Optional integer indicating the queue for work\n\n"
       "Returns:\n"
-      "  A buffer of output values\n" },
+      "  A buffer of flux values\n" },
+
+    { "ellipsoid_transit_flux_dual",
+      (PyCFunction) ellipsoid_transit_flux_dual,
+      METH_VARARGS | METH_KEYWORDS,
+      "ellipsoid_transit_flux_dual(time: pocky.BufferPair, params: "
+      "pocky.BufferPair, flux: pocky.BufferPair, dflux: pocky.BufferPair) -> "
+      "tuple[pocky.BufferPair, pocky.BufferPair]\n"
+      "Compute an ellipsoid transit lightcurve and its gradients.\n\n"
+      "Args:\n"
+      "  time: Time of the desired observation\n"
+      "  params: Planet and transit parameters\n"
+      "  binsize: Time bin size\n"
+      "  flux: Optional pre-allocated flux buffer\n"
+      "  dflux: Optional pre-allocated flux gradient buffer\n"
+      "  queue: Optional integer indicating the queue for work\n\n"
+      "Returns:\n"
+      "  A tuple containing buffers of fluxes and gradient values\n" },
 
     { NULL, NULL, 0, NULL }    /* sentinel */
 };
