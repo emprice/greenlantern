@@ -7,8 +7,14 @@ import scipy.optimize as opt
 import matplotlib.pyplot as plt
 from nordplotlib.png import install; install()
 
-rr, semimajor, tc, beta, zeta, eta, xi, u1, u2, Porb, ecc, omega = \
-    0.1, 5., 0.01, -0.02, 0., 0., 0., 0.1, -0.03, 2 * np.pi, 0.3, 0.2
+rr, semimajor, tc, beta, zeta, eta, xi, u1, u2, Porb = \
+    0.1, 5., 0.01, -0.02, 0., 0., 0., 0.1, -0.03, 2 * np.pi
+test_eccentric = False
+
+if test_eccentric:
+    ecc, omega = 0.3, 0.2
+else:
+    ecc, omega = 0., -0.5 * np.pi
 
 q1 = (u1 + u2)**2
 q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
@@ -48,16 +54,23 @@ def generate_timings():
         time_dev.copy_to_device()
         time_dev.dirty = False
 
-        params = np.array([[rr, rr, rr, semimajor, tc, beta, zeta, eta, xi, q1, q2, Porb, ecc, omega]], dtype=np.float32)
-        params = pocky.BufferPair(ctx, params)
-
-        flux = np.empty((params.host.shape[0], nt), dtype=np.float32)
+        flux = np.empty((1, nt), dtype=np.float32)
         flux = pocky.BufferPair(ctx, flux)
+
+        if test_eccentric:
+            params = np.array([[rr, rr, rr, semimajor, tc, beta,
+                zeta, eta, xi, q1, q2, Porb, ecc, omega]], dtype=np.float32)
+            params = pocky.BufferPair(ctx, params)
+        else:
+            params = np.array([[rr, rr, rr, semimajor, tc, beta,
+                zeta, eta, xi, q1, q2, Porb]], dtype=np.float32)
+            params = pocky.BufferPair(ctx, params)
 
         dt_greenlantern = 0
         for _ in range(ntries):
             t0 = time.time()
-            ctx1.ellipsoid_transit_flux(time_dev, params, flux=flux, eccentric=True)
+            ctx1.ellipsoid_transit_flux(time_dev, params,
+                flux=flux, eccentric=test_eccentric)
             t1 = time.time()
             dt_greenlantern += (t1 - t0) / flux.host.size
         dt_greenlantern /= ntries

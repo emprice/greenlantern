@@ -7,14 +7,14 @@
 #define PY_ARRAY_UNIQUE_SYMBOL greenlantern_ARRAY_API
 #include <numpy/arrayobject.h>
 
-PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
+PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
     PyObject *args, PyObject *kwargs)
 {
     char buf[BUFSIZ];
-    char *keys[] = { "time", "params", "binsize", "locked", "eccentric", "flux", "queue", NULL };
+    char *keys[] = { "time", "params", "binsize", "locked", "flux", "dflux", "queue", NULL };
 
-    PyObject *binsize = NULL, *queue_idx = NULL, *locked_flag = Py_False, *eccentric_flag = Py_False;
-    pocky_bufpair_object *input, *params, *flux = NULL;
+    PyObject *binsize = NULL, *queue_idx = NULL, *locked_flag = Py_False;
+    pocky_bufpair_object *time, *params, *flux = NULL, *dflux = NULL;
 
     cl_int err;
     cl_command_queue queue;
@@ -22,54 +22,64 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     cl_event event;
     cl_ushort locked;
 
-    long worksz[2];
-    size_t kernsz[2], locsz[2];
+    long worksz[1], dfluxsz[2];
+    size_t kernsz[1], locsz[2];
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!|$O!O!O!O!O!", keys,
-        pocky_api->bufpair_type, &input, pocky_api->bufpair_type, &params,
+        pocky_api->bufpair_type, &time, pocky_api->bufpair_type, &params,
         &PyFloat_Type, &binsize, &PyBool_Type, &locked_flag,
-        &PyBool_Type, &eccentric_flag, pocky_api->bufpair_type, &flux,
+        pocky_api->bufpair_type, &flux, pocky_api->bufpair_type, &dflux,
         &PyLong_Type, &queue_idx)) return NULL;
 
-    if ((input->host == NULL) ||
-        (!PyArray_CheckExact((PyArrayObject *) input->host)) ||
-        (PyArray_NDIM((PyArrayObject *) input->host) != 1) ||
-        (PyArray_TYPE((PyArrayObject *) input->host) != NPY_FLOAT32))
+    if ((time->host == NULL) ||
+        (!PyArray_CheckExact((PyArrayObject *) time->host)) ||
+        (PyArray_NDIM((PyArrayObject *) time->host) != 1) ||
+        (PyArray_TYPE((PyArrayObject *) time->host) != NPY_FLOAT32))
     {
-        /* Invalid input array */
+        /* Invalid time array */
         PyErr_SetString(PyExc_ValueError,
-            "Host input should be a one-dimensional array of float32");
+            "Host time array should be a one-dimensional array of float32");
         return NULL;
     }
 
     if ((params->host == NULL) ||
         (!PyArray_CheckExact((PyArrayObject *) params->host)) ||
         (PyArray_NDIM((PyArrayObject *) params->host) != 2) ||
+        (PyArray_DIM((PyArrayObject *) params->host, 0) != 1) ||
         (PyArray_TYPE((PyArrayObject *) params->host) != NPY_FLOAT32))
     {
-        /* Invalid input array */
+        /* Invalid params array */
         PyErr_SetString(PyExc_ValueError,
             "Host parameters should be a two-dimensional array of float32");
         return NULL;
     }
 
     /* Construct the global dimensions for the kernel */
-    worksz[0] = PyArray_DIM((PyArrayObject *) params->host, 0);
-    worksz[1] = PyArray_DIM((PyArrayObject *) input->host, 0);
+    worksz[0] = PyArray_DIM((PyArrayObject *) time->host, 0);
 
-    /* Create a buffer if needed */
+    /* Create a flux buffer if needed */
     if ((flux == NULL) &&
-        (pocky_api->bufpair_empty_from_shape(context->pocky, 2, worksz, &flux)))
+        (pocky_api->bufpair_empty_from_shape(context->pocky, 1, worksz, &flux)))
     {
         PyErr_SetString(PyExc_RuntimeError, "Could not create a flux array on-the-fly");
         return NULL;
     }
 
-    if ((worksz[0] == 0) || (worksz[1] == 0))
+    dfluxsz[0] = 12;
+    dfluxsz[1] = worksz[0];
+
+    /* Create a dflux buffer if needed */
+    if ((dflux == NULL) &&
+        (pocky_api->bufpair_empty_from_shape(context->pocky, 2, dfluxsz, &dflux)))
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Could not create a dflux array on-the-fly");
+        return NULL;
+    }
+
+    if (worksz[0] == 0)
     {
         /* Early exit -- no work to do */
-        Py_INCREF(flux);
-        return (PyObject *) flux;
+        return PyTuple_Pack(2, flux, dflux);
     }
 
     /* Extract the queue handle (first by default) and kernel */
@@ -81,23 +91,15 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     }
 
     /* Choose the appropriate kernel */
-    if (eccentric_flag == Py_False)
-    {
-        if (!binsize) kernel = context->kernels.ellipsoid_transit_flux_vector;
-        else kernel = context->kernels.ellipsoid_transit_flux_binned_vector;
-    }
-    else
-    {
-        if (!binsize) kernel = context->kernels.ellipsoid_eccentric_transit_flux_vector;
-        else kernel = context->kernels.ellipsoid_eccentric_transit_flux_binned_vector;
-    }
+    if (!binsize) kernel = context->kernels.ellipsoid_transit_flux_dual;
+    else kernel = NULL; // FIXME context->kernels.ellipsoid_transit_flux_binned_dual;
 
     /* Copy data to the device */
-    if (input->dirty == Py_True)
+    if (time->dirty == Py_True)
     {
-        err = clEnqueueWriteBuffer(queue, input->device,
-            CL_TRUE, 0, input->host_size * sizeof(cl_float),
-            PyArray_DATA((PyArrayObject *) input->host), 0, NULL, NULL);
+        err = clEnqueueWriteBuffer(queue, time->device,
+            CL_TRUE, 0, time->host_size * sizeof(cl_float),
+            PyArray_DATA((PyArrayObject *) time->host), 0, NULL, NULL);
         if (err != CL_SUCCESS)
         {
             snprintf(buf, BUFSIZ, greenlantern_ocl_fmt_internal,
@@ -122,7 +124,7 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     }
 
     /* Ready to run kernel */
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), &(input->device));
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &(time->device));
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &(params->device));
 
     locked = (locked_flag == Py_True) ? 1 : 0;
@@ -133,6 +135,7 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
     if (!binsize)
     {
         clSetKernelArg(kernel, 3, sizeof(cl_mem), &(flux->device));
+        clSetKernelArg(kernel, 4, sizeof(cl_mem), &(dflux->device));
         locsz[1] = 1;
     }
     else
@@ -140,14 +143,14 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
         float binsize_val = (float) PyFloat_AsDouble(binsize);
         clSetKernelArg(kernel, 3, sizeof(cl_float), &binsize_val);
         clSetKernelArg(kernel, 4, sizeof(cl_mem), &(flux->device));
+        clSetKernelArg(kernel, 5, sizeof(cl_mem), &(dflux->device));
         locsz[1] = 17;   /* number of points to bin together */
     }
 
     kernsz[0] = worksz[0] * locsz[0];
-    kernsz[1] = worksz[1] * locsz[1];
 
     err = clEnqueueNDRangeKernel(queue, kernel,
-        2, NULL, kernsz, locsz, 0, NULL, &event);
+        1, NULL, kernsz, locsz, 0, NULL, &event);
     if (err != CL_SUCCESS)
     {
         snprintf(buf, BUFSIZ, greenlantern_ocl_fmt_internal,
@@ -179,8 +182,18 @@ PyObject *ellipsoid_transit_flux(greenlantern_context_object *context,
         return NULL;
     }
 
-    Py_INCREF(flux);
-    return (PyObject *) flux;
+    err = clEnqueueReadBuffer(queue, dflux->device,
+        CL_TRUE, 0, dflux->host_size * sizeof(cl_float),
+        PyArray_DATA((PyArrayObject *) dflux->host), 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+    {
+        snprintf(buf, BUFSIZ, greenlantern_ocl_fmt_internal,
+            pocky_api->opencl_error_to_string(err), err);
+        PyErr_SetString(greenlantern_ocl_error, buf);
+        return NULL;
+    }
+
+    return PyTuple_Pack(2, flux, dflux);
 }
 
 /* vim: set ft=c.doxygen: */

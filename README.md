@@ -27,6 +27,9 @@ at the University of Chicago in Chicago, IL, USA.
 
  - [x] Take time and orbital period as inputs instead of angle $\alpha$
  - [x] Optionally handle elliptical orbits
+ - [ ] Support `binsize` argument to dual transit flux
+ - [ ] Support `locked` argument to dual transit flux
+ - [ ] Support `eccentric` argument to dual transit flux
 
 ## :sparkles: Credits
 

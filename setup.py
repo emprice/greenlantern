@@ -42,7 +42,7 @@ class GenerateKernelFragmentsCommand(sdist):
 
         return super().run()
 
-source_files = ['greenlantern.c', 'greenlantern_context.c', 'ellipsoid.c']
+source_files = ['greenlantern.c', 'greenlantern_context.c', 'ellipsoid.c', 'ellipsoid_dual.c']
 source_files = [os.path.join(source_dir, fname) for fname in source_files]
 
 header_files = ['greenlantern.h', 'greenlantern_context.h']

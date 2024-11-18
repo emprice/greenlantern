@@ -36,25 +36,25 @@ int greenlantern_context_init(greenlantern_context_object *context,
     if (err != CL_SUCCESS) return -1;
 
     err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
-        "ellipsoid_transit_flux_vector",
+        "ellipsoid_transit_flux_vectorized",
         &(context->kernels.ellipsoid_transit_flux_vector));
     if (err != CL_SUCCESS) return -1;
     clRetainKernel(context->kernels.ellipsoid_transit_flux_vector);
 
     err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
-        "ellipsoid_transit_flux_binned_vector",
+        "ellipsoid_transit_flux_binned_vectorized",
         &(context->kernels.ellipsoid_transit_flux_binned_vector));
     if (err != CL_SUCCESS) return -1;
     clRetainKernel(context->kernels.ellipsoid_transit_flux_binned_vector);
 
     err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
-        "ellipsoid_eccentric_transit_flux_vector",
+        "ellipsoid_eccentric_transit_flux_vectorized",
         &(context->kernels.ellipsoid_eccentric_transit_flux_vector));
     if (err != CL_SUCCESS) return -1;
     clRetainKernel(context->kernels.ellipsoid_eccentric_transit_flux_vector);
 
     err = pocky_api->opencl_kernel_lookup_by_name(num_kernels, kernels,
-        "ellipsoid_eccentric_transit_flux_binned_vector",
+        "ellipsoid_eccentric_transit_flux_binned_vectorized",
         &(context->kernels.ellipsoid_eccentric_transit_flux_binned_vector));
     if (err != CL_SUCCESS) return -1;
     clRetainKernel(context->kernels.ellipsoid_eccentric_transit_flux_binned_vector);
@@ -104,6 +104,7 @@ PyMethodDef greenlantern_context_methods[] = {
       "  time: Time of the desired observation\n"
       "  params: Planet and transit parameters\n"
       "  binsize: Time bin size\n"
+      "  locked: Flag to optionally enable tidal locking\n"
       "  eccentric: Flag to optionally enable eccentricity\n"
       "  flux: Optional pre-allocated flux buffer\n"
       "  queue: Optional integer indicating the queue for work\n\n"
@@ -121,6 +122,7 @@ PyMethodDef greenlantern_context_methods[] = {
       "  time: Time of the desired observation\n"
       "  params: Planet and transit parameters\n"
       "  binsize: Time bin size\n"
+      "  locked: Flag to optionally enable tidal locking\n"
       "  flux: Optional pre-allocated flux buffer\n"
       "  dflux: Optional pre-allocated flux gradient buffer\n"
       "  queue: Optional integer indicating the queue for work\n\n"
