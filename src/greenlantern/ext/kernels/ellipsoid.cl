@@ -66,24 +66,24 @@ float ellipsoid_transit_flux_locked_workgroup_body(int gid, int gsz,
     float2 alpha, float2 beta, ang_params_t p, float3 ax, float ds,
     float u1, float u2)
 {
-    float afac1 = ax.x * (beta.y * (-alpha.x * p.r3 + alpha.y * p.r2) + beta.x * p.r1);
-    float bfac1 = ax.y * (beta.y * ( alpha.x * p.r6 - alpha.y * p.r5) - beta.x * p.r4);
-    float cfac1 = ax.z * (beta.y * (-alpha.x * p.r9 + alpha.y * p.r8) + beta.x * p.r7);
+    float afac1 = ax.x * (beta.y * (alpha.x * p.r3 + alpha.y * p.r2) - beta.x * p.r1);
+    float bfac1 = ax.y * (beta.y * (alpha.x * p.r6 + alpha.y * p.r5) - beta.x * p.r4);
+    float cfac1 = ax.z * (beta.y * (alpha.x * p.r9 + alpha.y * p.r8) - beta.x * p.r7);
 
-    float afac2 = ax.x * ( alpha.x * p.r2 + alpha.y * p.r3);
-    float bfac2 = ax.y * (-alpha.x * p.r5 - alpha.y * p.r6);
-    float cfac2 = ax.z * ( alpha.x * p.r8 + alpha.y * p.r9);
+    float afac2 = ax.x * (alpha.y * p.r3 - alpha.x * p.r2);
+    float bfac2 = ax.y * (alpha.y * p.r6 - alpha.x * p.r5);
+    float cfac2 = ax.z * (alpha.y * p.r9 - alpha.x * p.r8);
 
-    float abfac = ax.x * ax.y * (beta.y * p.r7 + beta.x * (alpha.x * p.r9 - alpha.y * p.r8));
-    float acfac = ax.x * ax.z * (beta.y * p.r4 + beta.x * (alpha.x * p.r6 - alpha.y * p.r5));
-    float bcfac = ax.y * ax.z * (beta.y * p.r1 + beta.x * (alpha.x * p.r3 - alpha.y * p.r2));
+    float abfac = ax.x * ax.y * (beta.y * p.r7 + beta.x * (alpha.x * p.r9 + alpha.y * p.r8));
+    float acfac = ax.x * ax.z * (beta.y * p.r4 + beta.x * (alpha.x * p.r6 + alpha.y * p.r5));
+    float bcfac = ax.y * ax.z * (beta.y * p.r1 + beta.x * (alpha.x * p.r3 + alpha.y * p.r2));
 
     float dx = sqrt(afac1 * afac1 + bfac1 * bfac1 + cfac1 * cfac1);
 
     float dy1 = (afac1 * afac2 + bfac1 * bfac2 + cfac1 * cfac2) / dx;
     float dy2 = sqrt(abfac * abfac + acfac * acfac + bcfac * bcfac) / dx;
 
-    float x0 = -ds * alpha.x * beta.y;
+    float x0 = ds * alpha.x * beta.y;
     float y0 = ds * alpha.y;
 
     float3 Ival = 0;
@@ -133,7 +133,7 @@ float ellipsoid_transit_flux_unlocked_workgroup_body(int gid, int gsz,
     float dy2 = sqrt(abfac * abfac + acfac * acfac + bcfac * bcfac) / dx;
 
     float x0 = ds * alpha.x * beta.y;
-    float y0 = -ds * alpha.y;
+    float y0 = ds * alpha.y;
 
     float3 Ival = 0;
 

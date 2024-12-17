@@ -18,6 +18,7 @@ typedef struct
         cl_kernel ellipsoid_eccentric_transit_flux_binned_vector;
 
         cl_kernel ellipsoid_transit_flux_dual;
+        cl_kernel ellipsoid_transit_flux_binned_dual;
     }
     kernels;    /**< Named kernel handles */
 }

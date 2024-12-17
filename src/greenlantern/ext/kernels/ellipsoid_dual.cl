@@ -204,28 +204,28 @@ dual_flux_t ellipsoid_transit_flux_dual_locked_workgroup_body(int gid,
     float diff_abfac[NP1], diff_acfac[NP1], diff_bcfac[NP1];
 
     /* derivatives w.r.t. a, b, c */
-    diff_afac1[0] = beta.y * (-alpha.x * p.r3 + alpha.y * p.r2) + beta.x * p.r1;
-    diff_bfac1[1] = beta.y * ( alpha.x * p.r6 - alpha.y * p.r5) - beta.x * p.r4;
-    diff_cfac1[2] = beta.y * (-alpha.x * p.r9 + alpha.y * p.r8) + beta.x * p.r7;
+    diff_afac1[0] = beta.y * (alpha.x * p.r3 + alpha.y * p.r2) - beta.x * p.r1;
+    diff_bfac1[1] = beta.y * (alpha.x * p.r6 + alpha.y * p.r5) - beta.x * p.r4;
+    diff_cfac1[2] = beta.y * (alpha.x * p.r9 + alpha.y * p.r8) - beta.x * p.r7;
 
     diff_afac1[1] = diff_afac1[2] = 0;
     diff_bfac1[0] = diff_bfac1[2] = 0;
     diff_cfac1[0] = diff_cfac1[1] = 0;
 
-    diff_afac2[0] =  alpha.x * p.r2 + alpha.y * p.r3;
-    diff_bfac2[1] = -alpha.x * p.r5 - alpha.y * p.r6;
-    diff_cfac2[2] =  alpha.x * p.r8 + alpha.y * p.r9;
+    diff_afac2[0] = alpha.y * p.r3 - alpha.x * p.r2;
+    diff_bfac2[1] = alpha.y * p.r6 - alpha.x * p.r5;
+    diff_cfac2[2] = alpha.y * p.r9 - alpha.x * p.r8;
 
     diff_afac2[1] = diff_afac2[2] = 0;
     diff_bfac2[0] = diff_bfac2[2] = 0;
     diff_cfac2[0] = diff_cfac2[1] = 0;
 
-    diff_abfac[0] = ax.y * (beta.y * p.r7 + beta.x * (alpha.x * p.r9 - alpha.y * p.r8));
-    diff_abfac[1] = ax.x * (beta.y * p.r7 + beta.x * (alpha.x * p.r9 - alpha.y * p.r8));
-    diff_acfac[0] = ax.z * (beta.y * p.r4 + beta.x * (alpha.x * p.r6 - alpha.y * p.r5));
-    diff_acfac[2] = ax.x * (beta.y * p.r4 + beta.x * (alpha.x * p.r6 - alpha.y * p.r5));
-    diff_bcfac[1] = ax.z * (beta.y * p.r1 + beta.x * (alpha.x * p.r3 - alpha.y * p.r2));
-    diff_bcfac[2] = ax.y * (beta.y * p.r1 + beta.x * (alpha.x * p.r3 - alpha.y * p.r2));
+    diff_abfac[0] = ax.y * (beta.y * p.r7 + beta.x * (alpha.x * p.r9 + alpha.y * p.r8));
+    diff_abfac[1] = ax.x * (beta.y * p.r7 + beta.x * (alpha.x * p.r9 + alpha.y * p.r8));
+    diff_acfac[0] = ax.z * (beta.y * p.r4 + beta.x * (alpha.x * p.r6 + alpha.y * p.r5));
+    diff_acfac[2] = ax.x * (beta.y * p.r4 + beta.x * (alpha.x * p.r6 + alpha.y * p.r5));
+    diff_bcfac[1] = ax.z * (beta.y * p.r1 + beta.x * (alpha.x * p.r3 + alpha.y * p.r2));
+    diff_bcfac[2] = ax.y * (beta.y * p.r1 + beta.x * (alpha.x * p.r3 + alpha.y * p.r2));
 
     diff_abfac[2] = diff_acfac[1] = diff_bcfac[0] = 0;
 
@@ -248,44 +248,44 @@ dual_flux_t ellipsoid_transit_flux_dual_locked_workgroup_body(int gid,
     diff_abfac[3] = diff_acfac[3] = diff_bcfac[3] = 0;
 
     /* derivatives w.r.t. alpha */
-    diff_afac1[4] = ax.x * (beta.y * ( alpha.y * p.r3 + alpha.x * p.r2) + beta.x * p.r1);
-    diff_bfac1[4] = ax.y * (beta.y * (-alpha.y * p.r6 - alpha.x * p.r5) - beta.x * p.r4);
-    diff_cfac1[4] = ax.z * (beta.y * ( alpha.y * p.r9 + alpha.x * p.r8) + beta.x * p.r7);
+    diff_afac1[4] = ax.x * (beta.y * (-alpha.y * p.r3 + alpha.x * p.r2) - beta.x * p.r1);
+    diff_bfac1[4] = ax.y * (beta.y * (-alpha.y * p.r6 + alpha.x * p.r5) - beta.x * p.r4);
+    diff_cfac1[4] = ax.z * (beta.y * (-alpha.y * p.r9 + alpha.x * p.r8) - beta.x * p.r7);
 
-    diff_afac2[4] = ax.x * (-alpha.y * p.r2 + alpha.x * p.r3);
-    diff_bfac2[4] = ax.y * ( alpha.y * p.r5 - alpha.x * p.r6);
-    diff_cfac2[4] = ax.z * (-alpha.y * p.r8 + alpha.x * p.r9);
+    diff_afac2[4] = ax.x * (alpha.x * p.r3 + alpha.y * p.r2);
+    diff_bfac2[4] = ax.y * (alpha.x * p.r6 + alpha.y * p.r5);
+    diff_cfac2[4] = ax.z * (alpha.x * p.r9 + alpha.y * p.r8);
 
-    diff_abfac[4] = ax.x * ax.y * (beta.y * p.r7 + beta.x * (-alpha.y * p.r9 - alpha.x * p.r8));
-    diff_acfac[4] = ax.x * ax.z * (beta.y * p.r4 + beta.x * (-alpha.y * p.r6 - alpha.x * p.r5));
-    diff_bcfac[4] = ax.y * ax.z * (beta.y * p.r1 + beta.x * (-alpha.y * p.r3 - alpha.x * p.r2));
+    diff_abfac[4] = ax.x * ax.y * (beta.y * p.r7 + beta.x * (-alpha.y * p.r9 + alpha.x * p.r8));
+    diff_acfac[4] = ax.x * ax.z * (beta.y * p.r4 + beta.x * (-alpha.y * p.r6 + alpha.x * p.r5));
+    diff_bcfac[4] = ax.y * ax.z * (beta.y * p.r1 + beta.x * (-alpha.y * p.r3 + alpha.x * p.r2));
 
     /* derivatives w.r.t. beta */
-    diff_afac1[5] = ax.x * (beta.x * (-alpha.x * p.r3 + alpha.y * p.r2) - beta.y * p.r1);
-    diff_bfac1[5] = ax.y * (beta.x * ( alpha.x * p.r6 - alpha.y * p.r5) + beta.y * p.r4);
-    diff_cfac1[5] = ax.z * (beta.x * (-alpha.x * p.r9 + alpha.y * p.r8) - beta.y * p.r7);
+    diff_afac1[5] = ax.x * (beta.x * (alpha.x * p.r3 + alpha.y * p.r2) + beta.y * p.r1);
+    diff_bfac1[5] = ax.y * (beta.x * (alpha.x * p.r6 + alpha.y * p.r5) + beta.y * p.r4);
+    diff_cfac1[5] = ax.z * (beta.x * (alpha.x * p.r9 + alpha.y * p.r8) + beta.y * p.r7);
 
     diff_afac2[5] = diff_bfac2[5] = diff_cfac2[5] = 0;
 
-    diff_abfac[5] = ax.x * ax.y * (beta.x * p.r7 - beta.y * (alpha.x * p.r9 - alpha.y * p.r8));
-    diff_acfac[5] = ax.x * ax.z * (beta.x * p.r4 - beta.y * (alpha.x * p.r6 - alpha.y * p.r5));
-    diff_bcfac[5] = ax.y * ax.z * (beta.x * p.r1 - beta.y * (alpha.x * p.r3 - alpha.y * p.r2));
+    diff_abfac[5] = ax.x * ax.y * (beta.x * p.r7 - beta.y * (alpha.x * p.r9 + alpha.y * p.r8));
+    diff_acfac[5] = ax.x * ax.z * (beta.x * p.r4 - beta.y * (alpha.x * p.r6 + alpha.y * p.r5));
+    diff_bcfac[5] = ax.y * ax.z * (beta.x * p.r1 - beta.y * (alpha.x * p.r3 + alpha.y * p.r2));
 
     /* derivatives w.r.t. zeta, eta, xi */
     __attribute__((opencl_unroll_hint))
     for (int i = 0; i < 3; ++i)
     {
-        diff_afac1[i+6] = ax.x * (beta.y * (-alpha.x * p.dr3[i] + alpha.y * p.dr2[i]) + beta.x * p.dr1[i]);
-        diff_bfac1[i+6] = ax.y * (beta.y * ( alpha.x * p.dr6[i] - alpha.y * p.dr5[i]) - beta.x * p.dr4[i]);
-        diff_cfac1[i+6] = ax.z * (beta.y * (-alpha.x * p.dr9[i] + alpha.y * p.dr8[i]) + beta.x * p.dr7[i]);
+        diff_afac1[i+6] = ax.x * (beta.y * (alpha.x * p.dr3[i] + alpha.y * p.dr2[i]) - beta.x * p.dr1[i]);
+        diff_bfac1[i+6] = ax.y * (beta.y * (alpha.x * p.dr6[i] + alpha.y * p.dr5[i]) - beta.x * p.dr4[i]);
+        diff_cfac1[i+6] = ax.z * (beta.y * (alpha.x * p.dr9[i] + alpha.y * p.dr8[i]) - beta.x * p.dr7[i]);
 
-        diff_afac2[i+6] = ax.x * ( alpha.x * p.dr2[i] + alpha.y * p.dr3[i]);
-        diff_bfac2[i+6] = ax.y * (-alpha.x * p.dr5[i] - alpha.y * p.dr6[i]);
-        diff_cfac2[i+6] = ax.z * ( alpha.x * p.dr8[i] + alpha.y * p.dr9[i]);
+        diff_afac2[i+6] = ax.x * (alpha.y * p.dr3[i] - alpha.x * p.dr2[i]);
+        diff_bfac2[i+6] = ax.y * (alpha.y * p.dr6[i] - alpha.x * p.dr5[i]);
+        diff_cfac2[i+6] = ax.z * (alpha.y * p.dr9[i] - alpha.x * p.dr8[i]);
 
-        diff_abfac[i+6] = ax.x * ax.y * (beta.y * p.dr7[i] + beta.x * (alpha.x * p.dr9[i] - alpha.y * p.dr8[i]));
-        diff_acfac[i+6] = ax.x * ax.z * (beta.y * p.dr4[i] + beta.x * (alpha.x * p.dr6[i] - alpha.y * p.dr5[i]));
-        diff_bcfac[i+6] = ax.y * ax.z * (beta.y * p.dr1[i] + beta.x * (alpha.x * p.dr3[i] - alpha.y * p.dr2[i]));
+        diff_abfac[i+6] = ax.x * ax.y * (beta.y * p.dr7[i] + beta.x * (alpha.x * p.dr9[i] + alpha.y * p.dr8[i]));
+        diff_acfac[i+6] = ax.x * ax.z * (beta.y * p.dr4[i] + beta.x * (alpha.x * p.dr6[i] + alpha.y * p.dr5[i]));
+        diff_bcfac[i+6] = ax.y * ax.z * (beta.y * p.dr1[i] + beta.x * (alpha.x * p.dr3[i] + alpha.y * p.dr2[i]));
     }
 
     q.dx = sqrt(afac1 * afac1 + bfac1 * bfac1 + cfac1 * cfac1);
@@ -308,12 +308,12 @@ dual_flux_t ellipsoid_transit_flux_dual_locked_workgroup_body(int gid,
             bcfac * diff_bcfac[i]) / dy2_tmp / q.dx - q.dy2 * q.diff_dx[i] / q.dx;
     }
 
-    q.x0 = -ds * alpha.x * beta.y;
-    q.y0 =  ds * alpha.y;
+    q.x0 = ds * alpha.x * beta.y;
+    q.y0 = ds * alpha.y;
 
-    q.diff_x0[3] =      -alpha.x * beta.y;
-    q.diff_x0[4] =  ds * alpha.y * beta.y;
-    q.diff_x0[5] = -ds * alpha.x * beta.x;
+    q.diff_x0[3] =       alpha.x * beta.y;
+    q.diff_x0[4] = -ds * alpha.y * beta.y;
+    q.diff_x0[5] =  ds * alpha.x * beta.x;
 
     q.diff_y0[3] =      alpha.y;
     q.diff_y0[4] = ds * alpha.x;
@@ -478,15 +478,15 @@ dual_flux_t ellipsoid_transit_flux_dual_unlocked_workgroup_body(int gid,
             bcfac * diff_bcfac[i]) / dy2_tmp / q.dx - q.dy2 * q.diff_dx[i] / q.dx;
     }
 
-    q.x0 =  ds * alpha.x * beta.y;
-    q.y0 = -ds * alpha.y;
+    q.x0 = ds * alpha.x * beta.y;
+    q.y0 = ds * alpha.y;
 
-    q.diff_x0[3] =  alpha.x * beta.y;
+    q.diff_x0[3] =       alpha.x * beta.y;
     q.diff_x0[4] = -ds * alpha.y * beta.y;
     q.diff_x0[5] =  ds * alpha.x * beta.x;
 
-    q.diff_y0[3] = -alpha.y;
-    q.diff_y0[4] = -ds * alpha.x;
+    q.diff_y0[3] =      alpha.y;
+    q.diff_y0[4] = ds * alpha.x;
 
     q.diff_x0[0] = q.diff_x0[1] = q.diff_x0[2] =
         q.diff_x0[6] = q.diff_x0[7] = q.diff_x0[8] = 0;
@@ -652,7 +652,6 @@ kernel void ellipsoid_transit_flux_dual(global const float * restrict time,
     {
         if (alpha.x > 0)
         {
-
             local_dflux[0] = Ival_tot.deriv[0];     /* dIval / da */
             local_dflux[1] = Ival_tot.deriv[1];     /* dIval / db */
             local_dflux[2] = Ival_tot.deriv[2];     /* dIval / dc */
@@ -680,13 +679,162 @@ kernel void ellipsoid_transit_flux_dual(global const float * restrict time,
         {
             flux[sid] = 1;
             __attribute__((opencl_unroll_hint))
-            for (int i = 0; i < LDA; ++i)
-                dflux[i*ssz+sid] = 0;
+            for (int i = 0; i < LDA; ++i) local_dflux[i] = 0;
         }
     }
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
     for (int off = gid; off < LDA; off += gsz)
         dflux[off*ssz+sid] = -M_1_PI * local_dflux[off];
+}
+
+kernel void ellipsoid_transit_flux_binned_dual(global const float * restrict time,
+    global const float *params, ushort locked, float dt_bin, global float *flux,
+    global float * restrict dflux)
+{
+    int sid = get_global_id(0);     /* sample index */
+    int ssz = get_global_size(0);   /* number of samples */
+
+    int gid1 = get_local_id(0);     /* workgroup dim 0, summation */
+    int gsz1 = get_local_size(0);
+
+    int gid2 = get_local_id(1);     /* workgroup dim 1, binning */
+    int gsz2 = get_local_size(1);
+
+    sid /= gsz1; ssz /= gsz1;
+
+    local float local_params[LDA];
+    local float u1, u2, ds, alpha_ang_mid, dalpha_bin;
+    local float2 beta, zeta, eta, xi;
+    local float3 ax;
+    local float porb, q1, sqrt_q1, q2;
+
+    /* pre-load the parameters for this work group */
+    for (int off = gid1; (gid2 == 0) && (off < LDA); off += gsz1)
+        local_params[off] = params[off];
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    if ((gid1 == 0) && (gid2 == 0))
+    {
+        float a = local_params[0];   /* semiaxis along x */
+        float b = local_params[1];   /* semiaxis along y */
+        float c = local_params[2];   /* semiaxis along z */
+        ax = (float3)(a, b, c);
+
+        ds = local_params[3];           /* distance from ellipsoid to disk */
+        porb = local_params[11];        /* orbital period */
+        float t0 = local_params[4];     /* midtransit offset in time */
+
+        float t = time[sid];
+        float this_alpha = 2 * M_PI * (t / porb);
+        float alpha0 = 2 * M_PI * (t0 / porb);
+        dalpha_bin = 2 * M_PI * (dt_bin / porb);
+
+        alpha_ang_mid = this_alpha - alpha0;
+
+        {
+            /* precompute trig for beta */
+            float beta_ang = local_params[5];   /* complement of inclination */
+            float sin_beta, cos_beta;
+            sin_beta = sincos(beta_ang, &cos_beta);
+            beta = (float2)(cos_beta, sin_beta);
+        }
+
+        {
+            /* precompute trig for zeta */
+            float zeta_ang = local_params[6];   /* orientation angle 1 */
+            float sin_zeta, cos_zeta;
+            sin_zeta = sincos(zeta_ang, &cos_zeta);
+            zeta = (float2)(cos_zeta, sin_zeta);
+        }
+
+        {
+            /* precompute trig for eta */
+            float eta_ang = local_params[7];    /* orientation angle 2 */
+            float sin_eta, cos_eta;
+            sin_eta = sincos(eta_ang, &cos_eta);
+            eta = (float2)(cos_eta, sin_eta);
+        }
+
+        {
+            /* precompute trig for xi */
+            float xi_ang = local_params[8];    /* orientation angle 3 */
+            float sin_xi, cos_xi;
+            sin_xi = sincos(xi_ang, &cos_xi);
+            xi = (float2)(cos_xi, sin_xi);
+        }
+
+        /* convert q limb darkening to u limb darkening */
+        q1 = local_params[9];       /* limb darkening q1 */
+        q2 = local_params[10];      /* limb darkening q2 */
+        sqrt_q1 = sqrt(q1);
+        u1 = 2 * sqrt_q1 * q2;
+        u2 = sqrt_q1 * (1 - 2 * q2);
+    }
+    work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
+    float h_alpha = dalpha_bin / (gsz2 - 1);
+    float alpha_ang = alpha_ang_mid +
+        (gid2 - (gsz2 - 1) / 2) * h_alpha;
+
+    /* precompute trig for alpha */
+    float sin_alpha, cos_alpha;
+    sin_alpha = sincos(alpha_ang, &cos_alpha);
+    float2 alpha = (float2)(cos_alpha, sin_alpha);
+
+    dual_ang_params_t p = fill_dual_angular_parameters(zeta, eta, xi);
+    dual_flux_t Ival = (locked) ?
+        ellipsoid_transit_flux_dual_locked_workgroup_body(gid1, gsz1, alpha, beta, p, ax, ds, u1, u2) :
+        ellipsoid_transit_flux_dual_unlocked_workgroup_body(gid1, gsz1, alpha, beta, p, ax, ds, u1, u2);
+
+    float local_dflux[LDA];
+
+    if (alpha.x > 0)
+    {
+        local_dflux[0] = Ival.deriv[0];     /* dIval / da */
+        local_dflux[1] = Ival.deriv[1];     /* dIval / db */
+        local_dflux[2] = Ival.deriv[2];     /* dIval / dc */
+        local_dflux[3] = Ival.deriv[3];     /* dIval / dds */
+
+        /* dIval / dt0 from dIval / dalpha */
+        local_dflux[4] = -2 * M_PI * Ival.deriv[4] / porb;
+
+        local_dflux[5] = Ival.deriv[5];     /* dIval / dbeta */
+        local_dflux[6] = Ival.deriv[6];     /* dIval / dzeta */
+        local_dflux[7] = Ival.deriv[7];     /* dIval / deta */
+        local_dflux[8] = Ival.deriv[8];     /* dIval / dxi */
+
+        /* dIval / dq1 and dIval / dq2 */
+        local_dflux[9] = (sqrt_q1 == 0) ? 0 : ((q2 * Ival.deriv[9] +
+            0.5 * (1 - 2 * q2) * Ival.deriv[10]) / sqrt_q1);
+        local_dflux[10] = 2 * sqrt_q1 * (Ival.deriv[9] - Ival.deriv[10]);
+
+        /* dIval / dporb from dIval / dalpha */
+        local_dflux[11] = -alpha_ang * Ival.deriv[4] / porb;
+    }
+    else
+    {
+        Ival.val = 0;
+        __attribute__((opencl_unroll_hint))
+        for (int i = 0; i < LDA; ++i) local_dflux[i] = 0;
+    }
+
+    float weight = ((gid2 == 0) || (gid2 == gsz2 - 1)) ? 1 : ((gid2 & 0x1) ? 4 : 2);
+    weight /= 3 * (gsz2 - 1);
+
+    Ival.val *= weight;
+    __attribute__((opencl_unroll_hint))
+    for (int i = 0; i < NP1 + 2; ++i) local_dflux[i] *= weight;
+
+    dual_flux_t Ival_tot;
+    Ival_tot.val = work_group_reduce_add(Ival.val);
+    __attribute__((opencl_unroll_hint))
+    for (int i = 0; i < NP1 + 2; ++i)
+        Ival_tot.deriv[i] = work_group_reduce_add(local_dflux[i]);
+
+    if ((gid1 == 0) && (gid2 == 0)) flux[sid] = 1 - M_1_PI * Ival_tot.val;
+    for (int off = gid1; (gid2 == 0) && (off < LDA); off += gsz1)
+        dflux[off*ssz+sid] = -M_1_PI * Ival_tot.deriv[off];
 }
 
 #undef NP1

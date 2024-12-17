@@ -14,7 +14,7 @@ q2 = u1 / (2 * (u1 + u2)) if u1 > 0 else 0.
 ctx = pocky.Context.default()
 ctx1 = greenlantern.Context(ctx)
 
-nt = 1000
+nt = 100
 time = np.linspace(-0.3, 0.3, nt)
 time = pocky.BufferPair(ctx, time.astype(np.float32))
 time.copy_to_device()
@@ -29,7 +29,10 @@ flux = pocky.BufferPair(ctx, flux)
 dflux = np.empty((12, nt), dtype=np.float32)
 dflux = pocky.BufferPair(ctx, dflux)
 
-ctx1.ellipsoid_transit_flux_dual(time, params, flux=flux, dflux=dflux)
+ctx1.ellipsoid_transit_flux_dual(time, params, flux=flux, dflux=dflux, binsize=0.01*Porb)
 plt.plot(time.host, dflux.host.T, lw=2)
+
+ctx1.ellipsoid_transit_flux_dual(time, params, flux=flux, dflux=dflux)
+plt.plot(time.host, dflux.host.T, lw=1, ls='dashed')
 
 plt.show()

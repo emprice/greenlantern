@@ -16,11 +16,13 @@ def gen_kernel_paths():
         yield kernel_name, kernel_input
 
 kernel_paths = list(gen_kernel_paths())
-kernel_frag_template = textwrap.dedent('''\
-const char kernel_{kernel_name}[] = R"===(
-{kernel_content}
-)===";\n\n''')
-kernel_agg_template = textwrap.dedent('''\
+
+def make_kernel_frag(kernel_name, kernel_content):
+    return f'const char kernel_{kernel_name}[] = \n"' + \
+        '\\n"\n"'.join(kernel_content.replace('"', '\\"').split('\n')) + '\\n";\n\n'
+
+def make_kernel_agg(num_kernels, kernel_vars):
+    return textwrap.dedent(f'''\
 const cl_uint num_kernel_frags = {num_kernels};
 const char *kernel_frags[] = {{ {kernel_vars} }};
 ''')
@@ -31,12 +33,10 @@ class GenerateKernelFragmentsCommand(sdist):
             for kernel_name, kernel_input in kernel_paths:
                 with open(kernel_input, 'r') as kernel_in:
                     kernel_content = kernel_in.read()
-                    kernel_frag = kernel_frag_template.format(
-                        kernel_content=kernel_content, kernel_name=kernel_name)
+                    kernel_frag = make_kernel_frag(kernel_name, kernel_content)
                     kernel_def.write(kernel_frag)
 
-            kernel_agg = kernel_agg_template.format(
-                num_kernels=len(kernel_paths),
+            kernel_agg = make_kernel_agg(len(kernel_paths),
                 kernel_vars=', '.join([f'kernel_{name}' for name, _ in kernel_paths]))
             kernel_def.write(kernel_agg)
 

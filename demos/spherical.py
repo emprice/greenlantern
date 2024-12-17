@@ -60,7 +60,7 @@ for i, (rr, semimajor, beta_deg, u1, u2, ecc, omega_deg) in \
 
     params = np.array([[rr, rr, rr, semimajor, t0, beta, zeta, eta, xi, q1, q2, Porb, ecc, omega]], dtype=np.float32)
     params = pocky.BufferPair(ctx, params)
-    ctx1.ellipsoid_transit_flux(time_dev, params, flux=flux, eccentric=True)
+    ctx1.ellipsoid_transit_flux(time_dev, params, flux=flux, eccentric=True, locked=False)
 
     axs[0].plot(time, model_flux, lw=2, ls='solid', alpha=0.6, c=f'C{i}')
     axs[0].plot(time, flux.host[0], lw=2, ls='dashed', alpha=1, c=f'C{i}')
@@ -68,7 +68,7 @@ for i, (rr, semimajor, beta_deg, u1, u2, ecc, omega_deg) in \
     axs[1].scatter(time, 1e6 * (flux.host[0] - model_flux),
         alpha=0.05, s=8, c=f'C{i}', rasterized=True)
 
-    label = rf'$R_p / R_\star = {rr:.2f}, d_\star = {semimajor:.0f}, i = {90.-beta_deg:.0f}^\circ, u_1 = {u1:.2f}, u_2 = {u2:.2f}$'
+    label = rf'$R_p / R_\star = {rr:.2f}, d / R_\star = {semimajor:.0f}, i = {90.-beta_deg:.0f}^\circ, u_1 = {u1:.2f}, u_2 = {u2:.2f}$'
     handles.append(Line2D([0], [0], c=f'C{i}', lw=2, label=label))
 
 axs[1].set_xlabel(r'Time $t$ (code units)')

@@ -22,8 +22,8 @@ PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
     cl_event event;
     cl_ushort locked;
 
-    long worksz[1], dfluxsz[2];
-    size_t kernsz[1], locsz[2];
+    long worksz[2], dfluxsz[2];
+    size_t kernsz[2], locsz[2];
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!|$O!O!O!O!O!", keys,
         pocky_api->bufpair_type, &time, pocky_api->bufpair_type, &params,
@@ -56,6 +56,7 @@ PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
 
     /* Construct the global dimensions for the kernel */
     worksz[0] = PyArray_DIM((PyArrayObject *) time->host, 0);
+    worksz[1] = 1;
 
     /* Create a flux buffer if needed */
     if ((flux == NULL) &&
@@ -92,7 +93,7 @@ PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
 
     /* Choose the appropriate kernel */
     if (!binsize) kernel = context->kernels.ellipsoid_transit_flux_dual;
-    else kernel = NULL; // FIXME context->kernels.ellipsoid_transit_flux_binned_dual;
+    else kernel = context->kernels.ellipsoid_transit_flux_binned_dual;
 
     /* Copy data to the device */
     if (time->dirty == Py_True)
@@ -130,13 +131,13 @@ PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
     locked = (locked_flag == Py_True) ? 1 : 0;
     clSetKernelArg(kernel, 2, sizeof(cl_ushort), &locked);
 
-    locsz[0] = 32;
-
     if (!binsize)
     {
         clSetKernelArg(kernel, 3, sizeof(cl_mem), &(flux->device));
         clSetKernelArg(kernel, 4, sizeof(cl_mem), &(dflux->device));
-        locsz[1] = 1;
+
+        locsz[0] = 32;  /* number of threads working on summation */
+        locsz[1] = 1;   /* number of points to bin together (unused) */
     }
     else
     {
@@ -144,13 +145,16 @@ PyObject *ellipsoid_transit_flux_dual(greenlantern_context_object *context,
         clSetKernelArg(kernel, 3, sizeof(cl_float), &binsize_val);
         clSetKernelArg(kernel, 4, sizeof(cl_mem), &(flux->device));
         clSetKernelArg(kernel, 5, sizeof(cl_mem), &(dflux->device));
-        locsz[1] = 17;   /* number of points to bin together */
+
+        locsz[0] = 16;  /* number of threads working on summation */
+        locsz[1] = 17;  /* number of points to bin together */
     }
 
     kernsz[0] = worksz[0] * locsz[0];
+    kernsz[1] = worksz[1] * locsz[1];
 
     err = clEnqueueNDRangeKernel(queue, kernel,
-        1, NULL, kernsz, locsz, 0, NULL, &event);
+        2, NULL, kernsz, locsz, 0, NULL, &event);
     if (err != CL_SUCCESS)
     {
         snprintf(buf, BUFSIZ, greenlantern_ocl_fmt_internal,
