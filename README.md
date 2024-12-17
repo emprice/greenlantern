@@ -1,5 +1,7 @@
 # Green Lantern: Green's theorem Limb-darkened platform-AgNostic Transiting Ellipsoid Rapid Numerical code
 
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.14510631-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.14510630)
+
 ![Project logo](/assets/logo.png)
 
 This code was developed by Ellen M. Price ([@emprice](https://github.com/emprice))
@@ -27,8 +29,8 @@ at the University of Chicago in Chicago, IL, USA.
 
  - [x] Take time and orbital period as inputs instead of angle $\alpha$
  - [x] Optionally handle elliptical orbits
- - [ ] Support `binsize` argument to dual transit flux
- - [ ] Support `locked` argument to dual transit flux
+ - [x] Support `binsize` argument to dual transit flux
+ - [x] Support `locked` argument to dual transit flux
  - [ ] Support `eccentric` argument to dual transit flux
 
 ## :sparkles: Credits

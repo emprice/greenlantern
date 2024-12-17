@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you make use of this software, please cite it as below."
+authors:
+  - family-names: "Price"
+    given-names: "Ellen M."
+    orcid: "0000-0002-3286-3543"
+title: "greenlantern"
+version: 1.6
+doi: "10.5281/zenodo.14510631"
+date-released: 2024-12-17
+url: "https://github.com/emprice/greenlantern"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Price"
+      given-names: "Ellen M."
+      orcid: "0000-0002-3286-3543"
+    - family-names: "Becker"
+      given-names: "Juliette"
+      orcid: "0000-0002-7733-4522"
+    - family-names: "de Beurs"
+      given-names: "Zoë L."
+      orcid: "0000-0002-7564-6047"
+    - family-names: "Rogers"
+      given-names: "Leslie A."
+      orcid: "0000-0003-0638-3455"
+    - family-names: "Vanderburg"
+      given-names: "Andrew"
+      orcid: "0000-0001-7246-5438"
+  doi: "10.48550/arXiv.2410.05408"
+  journal: "arXiv e-prints"
+  title: "A long spin period for a sub-Neptune-mass exoplanet"
+  month: 10
+  year: 2024
